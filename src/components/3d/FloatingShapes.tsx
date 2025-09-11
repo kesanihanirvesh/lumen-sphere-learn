@@ -1,6 +1,6 @@
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Sphere, Box, Octahedron, Float } from '@react-three/drei';
+import { Sphere, Box, Octahedron } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Individual floating shape component
@@ -16,31 +16,52 @@ function FloatingShape({ position, shape, color, speed }: {
     if (meshRef.current) {
       meshRef.current.rotation.x += speed * 0.01;
       meshRef.current.rotation.y += speed * 0.015;
-      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * speed) * 0.5;
+      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * speed) * 0.3;
     }
   });
 
-  const ShapeComponent = {
-    sphere: Sphere,
-    box: Box,
-    octahedron: Octahedron,
-  }[shape];
+  // Create geometry based on shape type
+  const renderShape = () => {
+    const material = (
+      <meshStandardMaterial
+        color={color}
+        transparent
+        opacity={0.6}
+        roughness={0.2}
+        metalness={0.8}
+        emissive={color}
+        emissiveIntensity={0.05}
+      />
+    );
 
-  return (
-    <Float speed={speed} rotationIntensity={0.5} floatIntensity={0.5}>
-      <ShapeComponent ref={meshRef} position={position} args={[0.5]}>
-        <meshStandardMaterial
-          color={color}
-          transparent
-          opacity={0.7}
-          roughness={0.1}
-          metalness={0.8}
-          emissive={color}
-          emissiveIntensity={0.1}
-        />
-      </ShapeComponent>
-    </Float>
-  );
+    switch (shape) {
+      case 'sphere':
+        return (
+          <mesh ref={meshRef} position={position}>
+            <sphereGeometry args={[0.5, 16, 16]} />
+            {material}
+          </mesh>
+        );
+      case 'box':
+        return (
+          <mesh ref={meshRef} position={position}>
+            <boxGeometry args={[0.8, 0.8, 0.8]} />
+            {material}
+          </mesh>
+        );
+      case 'octahedron':
+        return (
+          <mesh ref={meshRef} position={position}>
+            <octahedronGeometry args={[0.6]} />
+            {material}
+          </mesh>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return renderShape();
 }
 
 // Main component with multiple floating shapes

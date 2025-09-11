@@ -1,6 +1,7 @@
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { FloatingShapes } from '@/components/3d/FloatingShapes';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'react-router-dom';
 import { 
@@ -64,7 +65,9 @@ const Index = () => {
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center overflow-hidden mesh-gradient">
-        <FloatingShapes />
+        <ErrorBoundary fallback={<div />}>
+          <FloatingShapes />
+        </ErrorBoundary>
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
