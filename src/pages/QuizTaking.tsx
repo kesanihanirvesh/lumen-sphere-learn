@@ -538,11 +538,17 @@ export default function QuizTaking() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">{quiz.title}</h1>
-            <p className="text-muted-foreground">
-              Question {currentQuestion + 1} of {quiz.questions.length}
-            </p>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={() => navigate(-1)}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Go Back
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">{quiz.title}</h1>
+              <p className="text-muted-foreground">
+                Question {currentQuestion + 1} of {quiz.questions.length}
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">

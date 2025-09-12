@@ -199,6 +199,19 @@ export default function LearningPath() {
     }
   };
 
+  const enrollInCourse = async () => {
+    try {
+      await supabase.from('enrollments').insert({
+        student_id: user?.id,
+        course_id: topic?.module?.course?.id,
+      });
+      await fetchTopicAndProgress();
+    } catch (error) {
+      console.error('Error enrolling in course:', error);
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -231,14 +244,19 @@ export default function LearningPath() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate(`/course/${topic.module.course.id}`)}
-          className="mb-6"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to {topic.module.course.title}
-        </Button>
+        <div className="mb-6 flex items-center gap-3">
+          <Button variant="ghost" onClick={() => navigate(-1)}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Go Back
+          </Button>
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(`/course/${topic.module.course.id}`)}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to {topic.module.course.title}
+          </Button>
+        </div>
 
         {/* Learning Path Header */}
         <div className="mb-8">
@@ -379,6 +397,22 @@ export default function LearningPath() {
           </TabsContent>
 
           <TabsContent value="learning" className="mt-6">
+            {getFilteredMaterials().filter(m => ['video', 'audio', 'document'].includes(m.material_type)).length === 0 && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>No materials available</CardTitle>
+                  <CardDescription>
+                    You might need to enroll in this course to access learning materials.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-3">
+                    <Button onClick={enrollInCourse}>Enroll in course</Button>
+                    <Button variant="outline" onClick={fetchTopicAndProgress}>Refresh</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <div className="grid gap-6">
               {getFilteredMaterials()
                 .filter(m => ['video', 'audio', 'document'].includes(m.material_type))
@@ -405,9 +439,12 @@ export default function LearningPath() {
                       <div className="space-y-4">
                         <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
                           {material.content_url ? (
-                            <iframe 
-                              src={material.content_url} 
+                            <iframe
+                              src={material.content_url}
+                              title={material.title}
                               className="w-full h-full rounded-lg"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              referrerPolicy="strict-origin-when-cross-origin"
                               allowFullScreen
                             />
                           ) : (

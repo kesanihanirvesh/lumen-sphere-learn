@@ -453,6 +453,7 @@ export type Database = {
           answers: Json | null
           cheat_flags: Json | null
           completed_at: string | null
+          created_at: string | null
           id: string
           ip_address: unknown | null
           is_flagged: boolean | null
@@ -469,6 +470,7 @@ export type Database = {
           answers?: Json | null
           cheat_flags?: Json | null
           completed_at?: string | null
+          created_at?: string | null
           id?: string
           ip_address?: unknown | null
           is_flagged?: boolean | null
@@ -485,6 +487,7 @@ export type Database = {
           answers?: Json | null
           cheat_flags?: Json | null
           completed_at?: string | null
+          created_at?: string | null
           id?: string
           ip_address?: unknown | null
           is_flagged?: boolean | null
