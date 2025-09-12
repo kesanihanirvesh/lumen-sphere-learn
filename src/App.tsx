@@ -8,6 +8,11 @@ import { Navbar } from "@/components/layout/Navbar";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Courses from "./pages/Courses";
+import CourseDetail from "./pages/CourseDetail";
+import LearningPath from "./pages/LearningPath";
+import InstructorDashboard from "./pages/InstructorDashboard";
+import QuizTaking from "./pages/QuizTaking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +30,11 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/courses" element={<Courses />} />
+              <Route path="/course/:courseId" element={<CourseDetail />} />
+              <Route path="/learn/:topicId" element={<LearningPath />} />
+              <Route path="/instructor" element={<InstructorDashboard />} />
+              <Route path="/quiz/:quizType/:topicId" element={<QuizTaking />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
