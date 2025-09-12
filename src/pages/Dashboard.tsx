@@ -197,7 +197,11 @@ export default function Dashboard() {
                             {enrollment.course.category} • {enrollment.course.difficulty_level}
                           </CardDescription>
                         </div>
-                        <Button size="sm" className="btn-glass">
+                        <Button 
+                          size="sm" 
+                          className="btn-glass"
+                          onClick={() => navigate(`/course/${enrollment.course.id}`)}
+                        >
                           <Play className="w-4 h-4 mr-2" />
                           Continue
                         </Button>
