@@ -12,6 +12,7 @@ import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
 import LearningPath from "./pages/LearningPath";
 import InstructorDashboard from "./pages/InstructorDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import QuizTaking from "./pages/QuizTaking";
 import NotFound from "./pages/NotFound";
 
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/course/:courseId" element={<CourseDetail />} />
               <Route path="/learn/:topicId" element={<LearningPath />} />
               <Route path="/instructor" element={<InstructorDashboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/quiz/:quizType/:topicId" element={<QuizTaking />} />
               {/* Redirect analytics to courses */}
               <Route path="/analytics" element={<Navigate to="/courses" replace />} />

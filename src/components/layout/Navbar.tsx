@@ -36,6 +36,17 @@ export function Navbar() {
     { name: 'Dashboard', href: '/dashboard', icon: GraduationCap },
   ];
 
+  // Add role-specific navigation items
+  const roleSpecificItems = [];
+  if (profile?.role === 'instructor') {
+    roleSpecificItems.push({ name: 'Instructor', href: '/instructor', icon: Settings });
+  }
+  if (profile?.role === 'admin') {
+    roleSpecificItems.push({ name: 'Admin Panel', href: '/admin', icon: Settings });
+  }
+
+  const allNavItems = [...navItems, ...roleSpecificItems];
+
   return (
     <nav className="fixed top-0 w-full z-50 glass-card border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,7 +63,7 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {user && navItems.map((item) => (
+            {user && allNavItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
@@ -133,7 +144,7 @@ export function Navbar() {
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 space-y-2 border-t border-white/10">
-            {user && navItems.map((item) => (
+            {user && allNavItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}

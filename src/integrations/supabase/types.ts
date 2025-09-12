@@ -238,6 +238,77 @@ export type Database = {
           },
         ]
       }
+      group_enrollments: {
+        Row: {
+          course_id: string
+          enrolled_at: string
+          enrolled_by: string
+          group_id: string
+          id: string
+        }
+        Insert: {
+          course_id: string
+          enrolled_at?: string
+          enrolled_by: string
+          group_id: string
+          id?: string
+        }
+        Update: {
+          course_id?: string
+          enrolled_at?: string
+          enrolled_by?: string
+          group_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_enrollments_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "student_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_memberships: {
+        Row: {
+          added_at: string
+          added_by: string
+          group_id: string
+          id: string
+          student_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          group_id: string
+          id?: string
+          student_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          group_id?: string
+          id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_memberships_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "student_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_materials: {
         Row: {
           content_data: Json | null
@@ -528,7 +599,10 @@ export type Database = {
           max_attempts: number | null
           passing_score: number | null
           proctored: boolean | null
+          quiz_type: string | null
           randomize_questions: boolean | null
+          seb_config_url: string | null
+          seb_required: boolean | null
           time_limit: number | null
           title: string
           updated_at: string | null
@@ -543,7 +617,10 @@ export type Database = {
           max_attempts?: number | null
           passing_score?: number | null
           proctored?: boolean | null
+          quiz_type?: string | null
           randomize_questions?: boolean | null
+          seb_config_url?: string | null
+          seb_required?: boolean | null
           time_limit?: number | null
           title: string
           updated_at?: string | null
@@ -558,7 +635,10 @@ export type Database = {
           max_attempts?: number | null
           passing_score?: number | null
           proctored?: boolean | null
+          quiz_type?: string | null
           randomize_questions?: boolean | null
+          seb_config_url?: string | null
+          seb_required?: boolean | null
           time_limit?: number | null
           title?: string
           updated_at?: string | null
@@ -572,6 +652,71 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seb_configurations: {
+        Row: {
+          config_data: Json
+          config_name: string
+          created_at: string
+          created_by: string
+          id: string
+          quiz_id: string
+          updated_at: string
+        }
+        Insert: {
+          config_data?: Json
+          config_name: string
+          created_at?: string
+          created_by: string
+          id?: string
+          quiz_id: string
+          updated_at?: string
+        }
+        Update: {
+          config_data?: Json
+          config_name?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          quiz_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seb_configurations_quiz_id_fkey"
+            columns: ["quiz_id"]
+            isOneToOne: true
+            referencedRelation: "quizzes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       student_progress: {
         Row: {
@@ -661,7 +806,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
