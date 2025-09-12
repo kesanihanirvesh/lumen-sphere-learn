@@ -62,6 +62,7 @@ export default function QuizTaking() {
   const [loading, setLoading] = useState(true);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
   const [reviewMode, setReviewMode] = useState(false);
+  const [courseId, setCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     if (topicId && user) {
@@ -89,12 +90,9 @@ export default function QuizTaking() {
 
   const fetchQuizAndAttempt = async () => {
     try {
-      // First, get or create a quiz for this topic
+      // Build mock quiz for this topic
       const quizTitle = quizType === 'pre-test' ? 'Pre-Assessment' : 'Post-Assessment';
-      
-      // For demo purposes, create sample questions
       const sampleQuestions = generateSampleQuestions();
-      
       const mockQuiz: Quiz = {
         id: `${topicId}-${quizType}`,
         title: quizTitle,
@@ -104,30 +102,37 @@ export default function QuizTaking() {
         passing_score: 70,
         questions: sampleQuestions
       };
-      
       setQuiz(mockQuiz);
 
-      // Check for existing attempt
+      // Fetch course id for progress tracking
+      const { data: topicRow } = await supabase
+        .from('course_topics')
+        .select('module:course_modules(course:courses(id))')
+        .eq('id', topicId)
+        .maybeSingle();
+      setCourseId((topicRow as any)?.module?.course?.id ?? null);
+
+      // Try to resume existing attempt
       const { data: existingAttempt } = await supabase
         .from('quiz_attempts')
         .select('*')
         .eq('student_id', user?.id)
         .eq('quiz_id', mockQuiz.id)
         .eq('status', 'in_progress')
-        .single();
+        .maybeSingle();
 
       if (existingAttempt) {
         setAttempt(existingAttempt as QuizAttempt);
-        setAnswers((existingAttempt.answers as any) || {});
-        
+        setAnswers((existingAttempt as any).answers || {});
+
         // Calculate time remaining
-        const startTime = new Date(existingAttempt.started_at).getTime();
+        const startTime = new Date((existingAttempt as any).started_at).getTime();
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const totalTime = (mockQuiz.time_limit || 30) * 60;
         setTimeRemaining(Math.max(0, totalTime - elapsed));
       } else {
-        // Create new attempt
-        const { data: newAttempt, error } = await supabase
+        // Create new attempt in DB; fall back to local if DB rejects non-UUID quiz_id
+        const { data: newAttempt } = await supabase
           .from('quiz_attempts')
           .insert({
             quiz_id: mockQuiz.id,
@@ -136,20 +141,26 @@ export default function QuizTaking() {
             answers: {}
           })
           .select()
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
-        
-        setAttempt(newAttempt as QuizAttempt);
+        if (newAttempt) {
+          setAttempt(newAttempt as QuizAttempt);
+        } else {
+          setAttempt({ id: 'local', answers: {}, started_at: new Date().toISOString(), status: 'in_progress' } as any);
+        }
         setTimeRemaining((mockQuiz.time_limit || 30) * 60);
       }
     } catch (error) {
       console.error('Error fetching quiz:', error);
+      // Ensure a local attempt so user can still take the quiz
+      if (!attempt) {
+        setAttempt({ id: 'local', answers: {}, started_at: new Date().toISOString(), status: 'in_progress' } as any);
+        setTimeRemaining(((quiz?.time_limit ?? 30) as number) * 60);
+      }
     } finally {
       setLoading(false);
     }
   };
-
   const generateSampleQuestions = (): Question[] => {
     const questions = [
       {
@@ -243,44 +254,51 @@ export default function QuizTaking() {
   };
 
   const submitQuiz = async () => {
-    if (!quiz || !attempt) return;
+    if (!quiz) return;
     
     const finalScore = calculateScore();
     setScore(finalScore);
     
     try {
-      // Update attempt as completed
-      await supabase
-        .from('quiz_attempts')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          score: finalScore,
-          answers: answers
-        })
-        .eq('id', attempt.id);
+      // Update attempt if persisted in DB
+      if (attempt && attempt.id && (attempt.id as any) !== 'local') {
+        await supabase
+          .from('quiz_attempts')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            score: finalScore,
+            answers: answers
+          })
+          .eq('id', attempt.id);
+      }
 
-      // Update student progress
-      await supabase
-        .from('student_progress')
-        .upsert({
-          student_id: user?.id,
-          course_id: quiz.id, // Using quiz id as placeholder
-          topic_id: topicId,
-          progress_type: quizType === 'pre-test' ? 'pre_test' : 'post_test',
-          score: finalScore,
-          is_completed: true,
-          mastery_level: finalScore >= 90 ? 'mastered' : 
-                         finalScore >= 80 ? 'proficient' :
-                         finalScore >= 70 ? 'developing' : 'beginning'
-        });
+      // Upsert progress only when we know the real course id
+      if (courseId) {
+        await supabase
+          .from('student_progress')
+          .upsert({
+            student_id: user?.id,
+            course_id: courseId,
+            topic_id: topicId,
+            progress_type: quizType === 'pre-test' ? 'pre_test' : 'post_test',
+            score: finalScore,
+            is_completed: true,
+            mastery_level: finalScore >= 90 ? 'mastered' : 
+                           finalScore >= 80 ? 'proficient' :
+                           finalScore >= 70 ? 'developing' : 'beginning'
+          });
+      }
       
+      // Show results and jump straight to review to highlight correct/incorrect
       setShowResults(true);
+      setReviewMode(true);
     } catch (error) {
       console.error('Error submitting quiz:', error);
+      setShowResults(true);
+      setReviewMode(true);
     }
   };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -382,6 +400,13 @@ export default function QuizTaking() {
               <EyeOff className="mr-2 h-4 w-4" />
               Exit Review
             </Button>
+          </div>
+
+          <div className="mb-6 flex items-center gap-3">
+            <Badge variant="secondary">Score: {score}%</Badge>
+            <Badge variant={score >= 90 ? 'default' : score >= 80 ? 'default' : score >= 70 ? 'secondary' : 'destructive'}>
+              Level: {score >= 90 ? 'mastered' : score >= 80 ? 'proficient' : score >= 70 ? 'developing' : 'beginning'}
+            </Badge>
           </div>
 
           <div className="space-y-6">
@@ -532,10 +557,7 @@ export default function QuizTaking() {
           </div>
 
           {currentQuestion === quiz.questions.length - 1 ? (
-            <Button 
-              onClick={submitQuiz}
-              disabled={Object.keys(answers).length < quiz.questions.length}
-            >
+            <Button onClick={submitQuiz}>
               Submit Quiz
               <CheckCircle className="ml-2 h-4 w-4" />
             </Button>
