@@ -278,8 +278,31 @@ export default function QuizTaking() {
     setScore(finalScore);
     
     try {
-      // Update attempt if persisted in DB
-      if (attempt && attempt.id && (attempt.id as any) !== 'local') {
+      // Always try to save to database - create attempt if doesn't exist
+      let attemptId = attempt?.id;
+      
+      if (!attemptId || attemptId === 'local') {
+        // Create new attempt record
+        const { data: newAttempt } = await supabase
+          .from('quiz_attempts')
+          .insert({
+            quiz_id: `quiz-${topicId}-${quizType}`, // Use a valid format
+            student_id: user?.id,
+            status: 'completed',
+            started_at: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
+            score: finalScore,
+            answers: answers
+          })
+          .select()
+          .maybeSingle();
+        
+        if (newAttempt) {
+          setAttempt(newAttempt as QuizAttempt);
+          attemptId = newAttempt.id;
+        }
+      } else {
+        // Update existing attempt
         await supabase
           .from('quiz_attempts')
           .update({
@@ -288,11 +311,11 @@ export default function QuizTaking() {
             score: finalScore,
             answers: answers
           })
-          .eq('id', attempt.id);
+          .eq('id', attemptId);
       }
 
-      // Upsert progress only when we know the real course id
-      if (courseId) {
+      // Save progress to student_progress table
+      if (courseId && topicId) {
         await supabase
           .from('student_progress')
           .upsert({
@@ -305,13 +328,16 @@ export default function QuizTaking() {
             mastery_level: finalScore >= 90 ? 'mastered' : 
                            finalScore >= 80 ? 'proficient' :
                            finalScore >= 70 ? 'developing' : 'beginning'
+          }, {
+            onConflict: 'student_id,course_id,topic_id,progress_type'
           });
       }
       
-      // Show results only (don't auto-switch to review)
+      // Show results
       setShowResults(true);
     } catch (error) {
       console.error('Error submitting quiz:', error);
+      // Even if database fails, still show results locally
       setShowResults(true);
     }
   };
@@ -480,6 +506,17 @@ export default function QuizTaking() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <Button 
+              onClick={() => navigate(`/learn/${topicId}`)} 
+              size="lg"
+              className="min-w-40"
+            >
+              End Review & Continue Learning
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
