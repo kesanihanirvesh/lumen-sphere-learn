@@ -58,6 +58,13 @@ interface Course {
     progress: number;
   };
   modules: CourseModule[];
+  finalAssessment?: {
+    id: string;
+    title: string;
+    seb_required: boolean;
+    time_limit: number;
+    passing_score: number;
+  };
 }
 
 export default function CourseDetail() {
@@ -65,22 +72,25 @@ export default function CourseDetail() {
   const { user } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
+  const [finalAssessmentAttempt, setFinalAssessmentAttempt] = useState<any>(null);
 
   useEffect(() => {
     if (courseId && user) {
       fetchCourseDetails();
+      fetchFinalAssessmentAttempt();
     }
   }, [courseId, user]);
 
   const fetchCourseDetails = async () => {
     try {
-      // Fetch course with modules, topics, and student progress
+      // Fetch course with modules, topics, student progress, and final assessment
       const { data: courseData, error: courseError } = await supabase
         .from('courses')
         .select(`
           *,
           instructor:profiles!instructor_id(full_name),
           enrollments!left(id, progress, student_id),
+          finalAssessment:quizzes!left(id, title, seb_required, time_limit, passing_score),
           modules:course_modules(
             *,
             topics:course_topics(
@@ -101,6 +111,7 @@ export default function CourseDetail() {
       const processedCourse = {
         ...courseData,
         enrollment: courseData.enrollments?.find((e: any) => e.student_id === user?.id),
+        finalAssessment: courseData.finalAssessment?.find((quiz: any) => quiz.quiz_type === 'final_assessment'),
         modules: courseData.modules
           ?.sort((a: any, b: any) => a.order_index - b.order_index)
           .map((module: any) => ({
@@ -143,6 +154,44 @@ export default function CourseDetail() {
       window.location.href = `/learn/${topicId}`;
     } catch (error) {
       console.error('Error starting learning:', error);
+    }
+  };
+
+  const fetchFinalAssessmentAttempt = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('quiz_attempts')
+        .select('*')
+        .eq('student_id', user?.id)
+        .eq('quiz_id', `${courseId}-final`)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      setFinalAssessmentAttempt(data);
+    } catch (error) {
+      console.error('Error fetching final assessment attempt:', error);
+    }
+  };
+
+  const startFinalAssessment = async () => {
+    try {
+      // Check if all topics are completed first
+      const totalTopics = course?.modules.reduce((acc, module) => acc + module.topics.length, 0) || 0;
+      const completedTopics = course?.modules.reduce((acc, module) => 
+        acc + module.topics.filter(topic => topic.progress?.is_completed).length, 0
+      ) || 0;
+
+      if (completedTopics < totalTopics) {
+        alert('Please complete all course topics before taking the final assessment.');
+        return;
+      }
+
+      // Navigate to final assessment
+      window.location.href = `/quiz/${course?.finalAssessment?.id}`;
+    } catch (error) {
+      console.error('Error starting final assessment:', error);
     }
   };
 
@@ -222,6 +271,7 @@ export default function CourseDetail() {
         <Tabs defaultValue="modules" className="space-y-6">
           <TabsList>
             <TabsTrigger value="modules">Learning Modules</TabsTrigger>
+            <TabsTrigger value="final">Final Assessment</TabsTrigger>
             <TabsTrigger value="overview">Course Overview</TabsTrigger>
           </TabsList>
 
@@ -308,6 +358,150 @@ export default function CourseDetail() {
                 </CardContent>
               </Card>
             ))}
+          </TabsContent>
+
+          <TabsContent value="final" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Course Final Assessment
+                </CardTitle>
+                <CardDescription>
+                  Comprehensive evaluation covering all course topics with secure browser enforcement
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {course?.finalAssessment ? (
+                  <div className="space-y-6">
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-xs font-bold text-white">!</span>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-amber-800 mb-1">Secure Testing Environment Required</h4>
+                          <p className="text-sm text-amber-700 mb-2">
+                            This assessment requires the Safe Exam Browser (SEB) for secure testing.
+                          </p>
+                          <ul className="text-xs text-amber-600 space-y-1">
+                            <li>• Download and install SEB before starting</li>
+                            <li>• Close all other applications during the exam</li>
+                            <li>• Ensure stable internet connection</li>
+                            <li>• Complete within {course.finalAssessment.time_limit} minutes</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <h4 className="font-semibold">Assessment Details</h4>
+                        <div className="space-y-1 text-sm text-muted-foreground">
+                          <div className="flex justify-between">
+                            <span>Time Limit:</span>
+                            <span>{course.finalAssessment.time_limit} minutes</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Passing Score:</span>
+                            <span>{course.finalAssessment.passing_score}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Attempts Allowed:</span>
+                            <span>2</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="font-semibold">Course Progress</h4>
+                        <div className="space-y-1 text-sm">
+                          {(() => {
+                            const totalTopics = course.modules.reduce((acc, module) => acc + module.topics.length, 0);
+                            const completedTopics = course.modules.reduce((acc, module) => 
+                              acc + module.topics.filter(topic => topic.progress?.is_completed).length, 0
+                            );
+                            const progressPercent = totalTopics > 0 ? Math.round((completedTopics / totalTopics) * 100) : 0;
+                            
+                            return (
+                              <>
+                                <div className="flex justify-between text-muted-foreground">
+                                  <span>Topics Completed:</span>
+                                  <span>{completedTopics}/{totalTopics}</span>
+                                </div>
+                                <Progress value={progressPercent} className="h-2" />
+                                <div className="text-center text-xs text-muted-foreground">
+                                  {progressPercent}% Complete
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-center pt-4">
+                      {finalAssessmentAttempt?.status === 'completed' ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <CheckCircle className="h-6 w-6 text-green-600" />
+                            <span className="text-lg font-semibold">Assessment Completed!</span>
+                          </div>
+                          <div className="flex justify-center gap-4">
+                            <Badge variant="outline" className="text-base px-4 py-2">
+                              Score: {finalAssessmentAttempt.score}%
+                            </Badge>
+                            <Badge variant={finalAssessmentAttempt.score >= course.finalAssessment.passing_score ? 'default' : 'destructive'}>
+                              {finalAssessmentAttempt.score >= course.finalAssessment.passing_score ? 'Passed' : 'Failed'}
+                            </Badge>
+                          </div>
+                          <Button variant="outline" onClick={() => window.location.href = `/quiz/${course.finalAssessment.id}/results`}>
+                            View Results
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {(() => {
+                            const totalTopics = course.modules.reduce((acc, module) => acc + module.topics.length, 0);
+                            const completedTopics = course.modules.reduce((acc, module) => 
+                              acc + module.topics.filter(topic => topic.progress?.is_completed).length, 0
+                            );
+                            const canTakeAssessment = completedTopics === totalTopics;
+                            
+                            return (
+                              <>
+                                {!canTakeAssessment && (
+                                  <p className="text-sm text-muted-foreground mb-4">
+                                    Complete all course topics to unlock the final assessment
+                                  </p>
+                                )}
+                                <Button 
+                                  size="lg"
+                                  onClick={startFinalAssessment}
+                                  disabled={!canTakeAssessment}
+                                  className="min-w-48"
+                                >
+                                  <Target className="mr-2 h-4 w-4" />
+                                  {finalAssessmentAttempt ? 'Continue Assessment' : 'Start Final Assessment'}
+                                </Button>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">No Final Assessment Available</h3>
+                    <p className="text-muted-foreground">
+                      The final assessment for this course is not yet configured.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="overview">

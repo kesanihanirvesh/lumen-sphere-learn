@@ -68,6 +68,7 @@ export default function LearningPath() {
   const [currentPhase, setCurrentPhase] = useState<'pre_test' | 'learning' | 'practice' | 'post_test'>('pre_test');
   const [loading, setLoading] = useState(true);
   const [quizAttempts, setQuizAttempts] = useState<any>({});
+  const [overallProgress, setOverallProgress] = useState(0);
 
   useEffect(() => {
     if (topicId && user) {
@@ -125,11 +126,10 @@ export default function LearningPath() {
 
       setTopic(topicData);
 
-      // Determine current phase based on progress
-      if (topicData.progress) {
-        // Logic to determine phase from progress records
-        setCurrentPhase('learning');
-      }
+      // Calculate overall progress and determine current phase
+      const { phase, progress } = calculateProgressAndPhase(topicData);
+      setCurrentPhase(phase);
+      setOverallProgress(progress);
     } catch (error) {
       console.error('Error fetching topic:', error);
     } finally {
@@ -180,6 +180,45 @@ export default function LearningPath() {
     }
   };
 
+  const calculateProgressAndPhase = (topicData: any) => {
+    const hasPreTest = quizAttempts.preTest?.status === 'completed';
+    const hasPostTest = quizAttempts.postTest?.status === 'completed';
+    const materialsCount = topicData.materials?.length || 0;
+    const completedMaterials = topicData.progress?.filter((p: any) => 
+      p.progress_type === 'material' && p.is_completed
+    )?.length || 0;
+
+    let progress = 0;
+    let phase: 'pre_test' | 'learning' | 'practice' | 'post_test' = 'pre_test';
+
+    // Phase 1: Pre-test (25% when completed)
+    if (hasPreTest) {
+      progress += 25;
+      phase = 'learning';
+      
+      // Phase 2: Learning materials (50% when all completed)
+      if (materialsCount > 0) {
+        const materialProgress = Math.min((completedMaterials / materialsCount) * 50, 50);
+        progress += materialProgress;
+        
+        if (completedMaterials === materialsCount) {
+          phase = 'practice';
+          
+          // Phase 3: Practice (75% when engaged)
+          progress += 15; // Assume practice engagement
+          phase = 'post_test';
+          
+          // Phase 4: Post-test (100% when completed)
+          if (hasPostTest) {
+            progress = 100;
+          }
+        }
+      }
+    }
+
+    return { phase, progress: Math.min(progress, 100) };
+  };
+
   const getFilteredMaterials = () => {
     if (!topic || !learningStyle) return [];
     
@@ -217,8 +256,43 @@ export default function LearningPath() {
         });
 
       if (error) throw error;
+
+      // Update enrollment progress
+      await updateEnrollmentProgress();
+      
+      // Refresh topic and progress data
+      await fetchTopicAndProgress();
     } catch (error) {
       console.error('Error updating progress:', error);
+    }
+  };
+
+  const updateEnrollmentProgress = async () => {
+    try {
+      // Calculate overall course progress based on all topics
+      const { data: allTopics } = await supabase
+        .from('course_topics')
+        .select(`
+          id,
+          progress:student_progress!left(is_completed, student_id)
+        `)
+        .eq('course_modules.course_id', topic?.module?.course?.id);
+
+      if (allTopics) {
+        const completedTopics = allTopics.filter(t => 
+          t.progress?.some((p: any) => p.student_id === user?.id && p.is_completed)
+        ).length;
+        
+        const overallProgress = Math.round((completedTopics / allTopics.length) * 100);
+
+        await supabase
+          .from('enrollments')
+          .update({ progress: overallProgress })
+          .eq('student_id', user?.id)
+          .eq('course_id', topic?.module?.course?.id);
+      }
+    } catch (error) {
+      console.error('Error updating enrollment progress:', error);
     }
   };
 
@@ -311,18 +385,31 @@ export default function LearningPath() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-semibold">Learning Pathway</h2>
-            <div className="flex items-center gap-2">
-              {['pre_test', 'learning', 'practice', 'post_test'].map((phase, index) => (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Progress:</span>
+                <span className="font-semibold text-foreground">{overallProgress}%</span>
+              </div>
+              <Progress value={overallProgress} className="w-32" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mb-4">
+            {['pre_test', 'learning', 'practice', 'post_test'].map((phase, index) => {
+              const isCompleted = index < ['pre_test', 'learning', 'practice', 'post_test'].indexOf(currentPhase);
+              const isCurrent = currentPhase === phase;
+              
+              return (
                 <div key={phase} className="flex items-center">
                   <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-medium
-                    ${currentPhase === phase ? 'border-primary bg-primary text-primary-foreground' : 
+                    ${isCurrent ? 'border-primary bg-primary text-primary-foreground' : 
+                      isCompleted ? 'border-green-500 bg-green-500 text-white' :
                       'border-muted bg-muted text-muted-foreground'}`}>
-                    {index + 1}
+                    {isCompleted ? <CheckCircle className="h-4 w-4" /> : index + 1}
                   </div>
-                  {index < 3 && <div className="w-8 h-0.5 bg-muted mx-1" />}
+                  {index < 3 && <div className={`w-8 h-0.5 mx-1 ${isCompleted ? 'bg-green-500' : 'bg-muted'}`} />}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
 
