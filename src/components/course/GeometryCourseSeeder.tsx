@@ -234,7 +234,11 @@ const createLearningMaterials = (topicId: string) => [
   }
 ];
 
-export function GeometryCourseSeeder() {
+interface GeometryCourseSeederProps {
+  onCourseCreated?: () => void;
+}
+
+export function GeometryCourseSeeder({ onCourseCreated }: GeometryCourseSeederProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -336,6 +340,8 @@ export function GeometryCourseSeeder() {
         title: "Success!",
         description: "ACP Geometry course has been created with all modules, topics, and learning materials.",
       });
+      
+      onCourseCreated?.();
 
     } catch (error: any) {
       console.error('Error creating geometry course:', error);

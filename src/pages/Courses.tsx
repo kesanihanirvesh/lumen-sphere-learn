@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { BookOpen, Clock, Users, TrendingUp } from 'lucide-react';
 import { FloatingShapes } from '@/components/3d/FloatingShapes';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { GeometryCourseSeeder } from '@/components/course/GeometryCourseSeeder';
 
 interface Course {
   id: string;
@@ -124,6 +125,12 @@ export default function Courses() {
         </section>
 
         <div className="container mx-auto px-4 py-8">
+          {courses.length === 0 && (
+            <div className="mb-8">
+              <GeometryCourseSeeder onCourseCreated={fetchCourses} />
+            </div>
+          )}
+          
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {courses.map((course) => (
               <Card key={course.id} className="group hover:shadow-lg transition-all duration-200">
