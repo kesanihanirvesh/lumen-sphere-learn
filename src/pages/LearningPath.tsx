@@ -77,6 +77,29 @@ export default function LearningPath() {
     }
   }, [topicId, user]);
 
+  // Add refresh logic to detect completed assessments
+  useEffect(() => {
+    const handleFocus = () => {
+      if (topicId && user) {
+        fetchQuizAttempts();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && topicId && user) {
+        fetchQuizAttempts();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [topicId, user]);
+
   const fetchTopicAndProgress = async () => {
     try {
       const { data, error } = await supabase
@@ -243,7 +266,7 @@ export default function LearningPath() {
 
   return (
     <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 pt-24 pb-8">
+        <div className="container mx-auto px-4 py-4">
         <div className="mb-6 flex items-center gap-3">
           <Button variant="ghost" onClick={() => navigate(-1)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -437,25 +460,26 @@ export default function LearningPath() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                          {material.content_url ? (
-                            <iframe
-                              src={material.content_url}
-                              title={material.title}
-                              className="w-full h-full rounded-lg"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              referrerPolicy="strict-origin-when-cross-origin"
-                              allowFullScreen
-                            />
-                          ) : (
-                            <div className="text-center">
-                              <StyleIcon className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                              <p className="text-muted-foreground">
-                                {material.material_type} content will be displayed here
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                         <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+                           {material.content_url ? (
+                             <iframe
+                               src={material.content_url}
+                               title={material.title}
+                               className="w-full h-full rounded-lg"
+                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                               referrerPolicy="strict-origin-when-cross-origin"
+                               allowFullScreen
+                             />
+                           ) : (
+                             <div className="text-center">
+                               <StyleIcon className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                               <p className="text-muted-foreground">Content will be available soon</p>
+                               <p className="text-sm text-muted-foreground mt-1">
+                                 {material.material_type} • {material.duration_minutes} min
+                               </p>
+                             </div>
+                           )}
+                         </div>
                         <Button 
                           className="w-full"
                           onClick={() => updateProgress('material_viewed')}

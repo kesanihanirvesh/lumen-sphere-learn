@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Clock, 
   CheckCircle, 
@@ -51,6 +52,7 @@ export default function QuizTaking() {
   const { quizType, topicId } = useParams<{ quizType: string; topicId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [attempt, setAttempt] = useState<QuizAttempt | null>(null);
@@ -340,10 +342,19 @@ export default function QuizTaking() {
           });
       }
       
-      // Show results
+      // Show results and toast notification
       setShowResults(true);
+      toast({
+        title: finalScore >= quiz.passing_score ? "Quiz Passed!" : "Quiz Complete",
+        description: `You scored ${finalScore}% ${finalScore >= quiz.passing_score ? '🎉' : '📚'}`,
+      });
     } catch (error) {
       console.error('Error submitting quiz:', error);
+      toast({
+        title: "Quiz Submitted",
+        description: "Your answers have been saved locally.",
+        variant: "destructive"
+      });
       // Even if database fails, still show results locally
       setShowResults(true);
     }
@@ -378,7 +389,7 @@ export default function QuizTaking() {
   if (showResults && !reviewMode) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="container mx-auto px-4 py-4 max-w-4xl">
           <Card className="text-center">
             <CardHeader>
               <CardTitle className="text-2xl">
@@ -449,7 +460,7 @@ export default function QuizTaking() {
   if (reviewMode) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="container mx-auto px-4 py-4 max-w-4xl">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Review: {quiz.title}</h1>
             <Button onClick={() => setReviewMode(false)} variant="outline">
@@ -538,20 +549,20 @@ export default function QuizTaking() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => navigate(-1)}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Go Back
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">{quiz.title}</h1>
-              <p className="text-muted-foreground">
-                Question {currentQuestion + 1} of {quiz.questions.length}
-              </p>
-            </div>
+          <Button variant="ghost" onClick={() => navigate(-1)} className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Go Back
+          </Button>
+          <div className="text-right">
+            <h1 className="text-2xl font-bold">{quiz.title}</h1>
+            <p className="text-muted-foreground">
+              Question {currentQuestion + 1} of {quiz.questions.length}
+            </p>
           </div>
-          
-          <div className="flex items-center gap-4">
+        </div>
+        
+        {/* Time and Progress */}
+        <div className="flex items-center gap-4">
             {timeRemaining !== null && (
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
@@ -560,7 +571,6 @@ export default function QuizTaking() {
                 </span>
               </div>
             )}
-          </div>
         </div>
 
         {/* Progress */}

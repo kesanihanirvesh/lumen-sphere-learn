@@ -26,7 +26,8 @@ const App = () => (
         <BrowserRouter>
           <div className="min-h-screen">
             <Navbar />
-            <Routes>
+            <main className="pt-16">
+              <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -39,7 +40,8 @@ const App = () => (
               <Route path="/analytics" element={<Navigate to="/courses" replace />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
+              </Routes>
+            </main>
           </div>
         </BrowserRouter>
       </TooltipProvider>
