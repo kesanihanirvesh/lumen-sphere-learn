@@ -112,6 +112,24 @@ export default function QuizTaking() {
         .maybeSingle();
       setCourseId((topicRow as any)?.module?.course?.id ?? null);
 
+      // Check for completed attempts to prevent retaking
+      const { data: completedAttempt } = await supabase
+        .from('quiz_attempts')
+        .select('*')
+        .eq('student_id', user?.id)
+        .eq('quiz_id', mockQuiz.id)
+        .eq('status', 'completed')
+        .maybeSingle();
+
+      if (completedAttempt) {
+        // Show completed results
+        setAttempt(completedAttempt as QuizAttempt);
+        setAnswers((completedAttempt as any).answers || {});
+        setScore((completedAttempt as any).score || 0);
+        setShowResults(true);
+        return;
+      }
+
       // Try to resume existing attempt
       const { data: existingAttempt } = await supabase
         .from('quiz_attempts')
@@ -290,13 +308,11 @@ export default function QuizTaking() {
           });
       }
       
-      // Show results and jump straight to review to highlight correct/incorrect
+      // Show results only (don't auto-switch to review)
       setShowResults(true);
-      setReviewMode(true);
     } catch (error) {
       console.error('Error submitting quiz:', error);
       setShowResults(true);
-      setReviewMode(true);
     }
   };
   const formatTime = (seconds: number) => {
@@ -326,14 +342,21 @@ export default function QuizTaking() {
     );
   }
 
-  if (showResults) {
+  if (showResults && !reviewMode) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <Card className="text-center">
             <CardHeader>
-              <CardTitle className="text-2xl">Quiz Complete!</CardTitle>
-              <CardDescription>Here are your results</CardDescription>
+              <CardTitle className="text-2xl">
+                {attempt && (attempt as any).status === 'completed' ? 'Quiz Results' : 'Quiz Complete!'}
+              </CardTitle>
+              <CardDescription>
+                {attempt && (attempt as any).status === 'completed' 
+                  ? 'You have already completed this quiz. Here are your results:' 
+                  : 'Here are your results'
+                }
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-6xl font-bold mb-4">
