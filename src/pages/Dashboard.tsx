@@ -248,6 +248,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
+            
             {/* Recent Activity */}
             <Card className="glass-card">
               <CardHeader>

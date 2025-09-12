@@ -15,6 +15,9 @@ import InstructorDashboard from "./pages/InstructorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import QuizTaking from "./pages/QuizTaking";
 import NotFound from "./pages/NotFound";
+import Myquizpage from "./pages/Myquizpage";
+import Myquiz from "./pages/Myquiz";
+
 
 const queryClient = new QueryClient();
 
@@ -41,6 +44,11 @@ const App = () => (
               {/* Redirect analytics to courses */}
               <Route path="/analytics" element={<Navigate to="/courses" replace />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          
+
+              <Route path="/quizunique" element={<Myquizpage/>} />
+              <Route path="/myquiz" element={<Myquiz/>} />
+
               <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
