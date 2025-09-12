@@ -184,14 +184,20 @@ const createLearningMaterials = (topicId: string) => [
   {
     topic_id: topicId,
     title: "Concept Video",
-    description: "Animated explanation of key concepts",
+    description: "Comprehensive video explanation covering key concepts and problem-solving strategies",
     material_type: "video",
     learning_style: "visual",
+    content_url: "https://www.youtube.com/embed/R6o_TVU65sI",
     duration_minutes: 20,
     difficulty_level: "medium",
     is_required: true,
     order_index: 2,
-    content_data: { type: "video", animated: true }
+    content_data: { 
+      type: "video", 
+      animated: true,
+      source: "youtube",
+      url: "https://www.youtube.com/watch?v=R6o_TVU65sI"
+    }
   },
   // Auditory materials
   {
@@ -219,18 +225,24 @@ const createLearningMaterials = (topicId: string) => [
     order_index: 4,
     content_data: { type: "practice", interactive: true }
   },
-  // Universal materials
+  // Universal materials - Step-by-step examples document
   {
     topic_id: topicId,
     title: "Step-by-Step Examples",
-    description: "Worked examples with detailed explanations",
+    description: "Comprehensive worked examples with detailed explanations and practice problems",
     material_type: "document",
     learning_style: "universal",
+    content_url: "https://drive.google.com/file/d/1lW4oH7FMDhmMcouykUVztvOWreMmbTu2/preview",
     duration_minutes: 12,
     difficulty_level: "medium",
     is_required: false,
     order_index: 5,
-    content_data: { type: "document", examples: true }
+    content_data: { 
+      type: "document", 
+      examples: true,
+      source: "google_drive",
+      url: "https://drive.google.com/file/d/1lW4oH7FMDhmMcouykUVztvOWreMmbTu2/view?usp=drive_link"
+    }
   }
 ];
 

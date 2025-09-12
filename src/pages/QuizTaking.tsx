@@ -93,12 +93,13 @@ export default function QuizTaking() {
       // Build mock quiz for this topic
       const quizTitle = quizType === 'pre-test' ? 'Pre-Assessment' : 'Post-Assessment';
       const sampleQuestions = generateSampleQuestions();
+      const quizId = `quiz-${topicId}-${quizType}`;
       const mockQuiz: Quiz = {
-        id: `${topicId}-${quizType}`,
+        id: quizId,
         title: quizTitle,
         description: `${quizTitle} for this topic to evaluate your understanding.`,
         time_limit: quizType === 'post-test' ? 30 : 15, // minutes
-        max_attempts: 3,
+        max_attempts: 1, // Only allow one attempt
         passing_score: 70,
         questions: sampleQuestions
       };
@@ -112,69 +113,75 @@ export default function QuizTaking() {
         .maybeSingle();
       setCourseId((topicRow as any)?.module?.course?.id ?? null);
 
-      // Check for completed attempts to prevent retaking
-      const { data: completedAttempt } = await supabase
+      // Check for ANY attempt (completed or in_progress) to prevent retaking
+      const { data: existingAttempts } = await supabase
         .from('quiz_attempts')
         .select('*')
         .eq('student_id', user?.id)
-        .eq('quiz_id', mockQuiz.id)
-        .eq('status', 'completed')
-        .maybeSingle();
+        .or(`quiz_id.eq.${quizId},quiz_id.eq.${topicId}-${quizType}`)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-      if (completedAttempt) {
-        // Show completed results
-        setAttempt(completedAttempt as QuizAttempt);
-        setAnswers((completedAttempt as any).answers || {});
-        setScore((completedAttempt as any).score || 0);
-        setShowResults(true);
-        return;
-      }
+      if (existingAttempts && existingAttempts.length > 0) {
+        const existingAttempt = existingAttempts[0];
+        
+        if (existingAttempt.status === 'completed') {
+          // Show completed results - no retakes allowed
+          setAttempt(existingAttempt as QuizAttempt);
+          setAnswers((existingAttempt.answers as Record<string, string>) || {});
+          setScore(existingAttempt.score || 0);
+          setShowResults(true);
+          return;
+        } else if (existingAttempt.status === 'in_progress') {
+          // Resume existing attempt
+          setAttempt(existingAttempt as QuizAttempt);
+          setAnswers((existingAttempt.answers as Record<string, string>) || {});
 
-      // Try to resume existing attempt
-      const { data: existingAttempt } = await supabase
-        .from('quiz_attempts')
-        .select('*')
-        .eq('student_id', user?.id)
-        .eq('quiz_id', mockQuiz.id)
-        .eq('status', 'in_progress')
-        .maybeSingle();
-
-      if (existingAttempt) {
-        setAttempt(existingAttempt as QuizAttempt);
-        setAnswers((existingAttempt as any).answers || {});
-
-        // Calculate time remaining
-        const startTime = new Date((existingAttempt as any).started_at).getTime();
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const totalTime = (mockQuiz.time_limit || 30) * 60;
-        setTimeRemaining(Math.max(0, totalTime - elapsed));
-      } else {
-        // Create new attempt in DB; fall back to local if DB rejects non-UUID quiz_id
-        const { data: newAttempt } = await supabase
-          .from('quiz_attempts')
-          .insert({
-            quiz_id: mockQuiz.id,
-            student_id: user?.id,
-            status: 'in_progress',
-            answers: {}
-          })
-          .select()
-          .maybeSingle();
-
-        if (newAttempt) {
-          setAttempt(newAttempt as QuizAttempt);
-        } else {
-          setAttempt({ id: 'local', answers: {}, started_at: new Date().toISOString(), status: 'in_progress' } as any);
+          // Calculate time remaining
+          const startTime = new Date(existingAttempt.started_at).getTime();
+          const elapsed = Math.floor((Date.now() - startTime) / 1000);
+          const totalTime = (mockQuiz.time_limit || 30) * 60;
+          const timeLeft = Math.max(0, totalTime - elapsed);
+          
+          if (timeLeft === 0) {
+            // Time expired, auto-submit
+            submitQuiz();
+            return;
+          }
+          
+          setTimeRemaining(timeLeft);
+          return;
         }
-        setTimeRemaining((mockQuiz.time_limit || 30) * 60);
       }
+
+      // Create new attempt - only if no previous attempts exist
+      const { data: newAttempt, error: createError } = await supabase
+        .from('quiz_attempts')
+        .insert({
+          quiz_id: quizId,
+          student_id: user?.id,
+          status: 'in_progress',
+          answers: {},
+          started_at: new Date().toISOString()
+        })
+        .select()
+        .maybeSingle();
+
+      if (createError) {
+        console.error('Error creating attempt:', createError);
+        // Fallback to local attempt
+        setAttempt({ id: 'local', answers: {}, started_at: new Date().toISOString(), status: 'in_progress' } as any);
+      } else {
+        setAttempt(newAttempt as QuizAttempt);
+      }
+      
+      setTimeRemaining((mockQuiz.time_limit || 30) * 60);
+      
     } catch (error) {
       console.error('Error fetching quiz:', error);
-      // Ensure a local attempt so user can still take the quiz
-      if (!attempt) {
-        setAttempt({ id: 'local', answers: {}, started_at: new Date().toISOString(), status: 'in_progress' } as any);
-        setTimeRemaining(((quiz?.time_limit ?? 30) as number) * 60);
-      }
+      // Fallback to local attempt only if absolutely necessary
+      setAttempt({ id: 'local', answers: {}, started_at: new Date().toISOString(), status: 'in_progress' } as any);
+      setTimeRemaining(((quiz?.time_limit ?? 30) as number) * 60);
     } finally {
       setLoading(false);
     }
@@ -428,7 +435,7 @@ export default function QuizTaking() {
                   Review Answers
                 </Button>
                 <Button onClick={() => navigate(`/learn/${topicId}`)}>
-                  Continue Learning
+                  End Review & Continue Learning
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>

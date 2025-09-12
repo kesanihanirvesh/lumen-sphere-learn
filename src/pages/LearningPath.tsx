@@ -17,7 +17,9 @@ import {
   Clock,
   Target,
   Brain,
-  RotateCcw
+  RotateCcw,
+  Eye,
+  ArrowRight
 } from 'lucide-react';
 
 interface LearningMaterial {
@@ -134,16 +136,17 @@ export default function LearningPath() {
         .from('quiz_attempts')
         .select('*')
         .eq('student_id', user?.id)
-        .in('quiz_id', [`${topicId}-pre-test`, `quiz-${topicId}-pre-test`, `${topicId}-post-test`, `quiz-${topicId}-post-test`])
-        .eq('status', 'completed');
+        .or(`quiz_id.eq.${topicId}-pre-test,quiz_id.eq.quiz-${topicId}-pre-test,quiz_id.eq.${topicId}-post-test,quiz_id.eq.quiz-${topicId}-post-test`)
+        .in('status', ['completed', 'in_progress'])
+        .order('created_at', { ascending: false });
 
       if (error && error.code !== 'PGRST116') throw error;
       
       const attempts: any = {};
       data?.forEach((attempt: any) => {
-        if (attempt.quiz_id.includes('pre-test')) {
+        if (attempt.quiz_id.includes('pre-test') && !attempts.preTest) {
           attempts.preTest = attempt;
-        } else if (attempt.quiz_id.includes('post-test')) {
+        } else if (attempt.quiz_id.includes('post-test') && !attempts.postTest) {
           attempts.postTest = attempt;
         }
       });
@@ -305,37 +308,50 @@ export default function LearningPath() {
               <CardContent>
                 <div className="text-center py-8">
                   {quizAttempts.preTest ? (
-                    // Show completed assessment results
+                    // Show completed assessment results - no retakes allowed
                     <div className="space-y-4">
                       <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-600" />
                       <h3 className="text-xl font-semibold mb-2">Pre-Assessment Complete!</h3>
                       <div className="flex justify-center gap-4 mb-4">
                         <Badge variant="outline" className="text-lg px-4 py-2">
-                          Score: {quizAttempts.preTest.score}%
+                          Final Score: {quizAttempts.preTest.score || 0}%
                         </Badge>
                         <Badge variant={
-                          quizAttempts.preTest.score >= 90 ? 'default' : 
-                          quizAttempts.preTest.score >= 80 ? 'default' : 
-                          quizAttempts.preTest.score >= 70 ? 'secondary' : 'destructive'
+                          (quizAttempts.preTest.score || 0) >= 90 ? 'default' : 
+                          (quizAttempts.preTest.score || 0) >= 80 ? 'default' : 
+                          (quizAttempts.preTest.score || 0) >= 70 ? 'secondary' : 'destructive'
                         }>
                           Level: {
-                            quizAttempts.preTest.score >= 90 ? 'Mastered' : 
-                            quizAttempts.preTest.score >= 80 ? 'Proficient' : 
-                            quizAttempts.preTest.score >= 70 ? 'Developing' : 'Beginning'
+                            (quizAttempts.preTest.score || 0) >= 90 ? 'Mastered' : 
+                            (quizAttempts.preTest.score || 0) >= 80 ? 'Proficient' : 
+                            (quizAttempts.preTest.score || 0) >= 70 ? 'Developing' : 'Beginning'
                           }
                         </Badge>
                       </div>
                       <p className="text-muted-foreground mb-6">
-                        Great! You've completed your baseline assessment. Now let's move to personalized learning.
+                        {quizAttempts.preTest.status === 'completed' 
+                          ? "Assessment completed! Your score has been saved and you can now proceed to learning materials."
+                          : "Assessment in progress. Please complete it to see your results."
+                        }
                       </p>
-                      <Button 
-                        size="lg"
-                        onClick={() => navigate(`/quiz/pre-test/${topicId}`)}
-                        variant="outline"
-                      >
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                        Review Results
-                      </Button>
+                      {quizAttempts.preTest.status === 'completed' ? (
+                        <Button 
+                          size="lg"
+                          onClick={() => navigate(`/quiz/pre-test/${topicId}`)}
+                          variant="outline"
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Results
+                        </Button>
+                      ) : (
+                        <Button 
+                          size="lg"
+                          onClick={() => navigate(`/quiz/pre-test/${topicId}`)}
+                        >
+                          Continue Assessment
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     // Show start assessment
@@ -457,45 +473,60 @@ export default function LearningPath() {
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
-                  {quizAttempts.postTest ? (
-                    // Show completed assessment results
-                    <div className="space-y-4">
-                      <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-600" />
-                      <h3 className="text-xl font-semibold mb-2">Final Assessment Complete!</h3>
-                      <div className="flex justify-center gap-4 mb-4">
-                        <Badge variant="outline" className="text-lg px-4 py-2">
-                          Score: {quizAttempts.postTest.score}%
-                        </Badge>
-                        <Badge variant={
-                          quizAttempts.postTest.score >= 90 ? 'default' : 
-                          quizAttempts.postTest.score >= 80 ? 'default' : 
-                          quizAttempts.postTest.score >= 70 ? 'secondary' : 'destructive'
-                        }>
-                          {quizAttempts.postTest.score >= 70 ? '✅ Passed' : '❌ Not Passed'}
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground mb-6">
-                        {quizAttempts.postTest.score >= 70 
-                          ? "Congratulations! You've mastered this topic and can move on to the next one."
-                          : "You can review the materials and practice more before trying the next topic."
-                        }
-                      </p>
-                      <div className="flex gap-4 justify-center">
-                        <Button 
-                          size="lg"
-                          onClick={() => navigate(`/quiz/post-test/${topicId}`)}
-                          variant="outline"
-                        >
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                          Review Results
-                        </Button>
-                        <Button variant="outline" size="lg">
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                          Review Materials
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
+                   {quizAttempts.postTest ? (
+                     // Show completed assessment results - no retakes allowed
+                     <div className="space-y-4">
+                       <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-600" />
+                       <h3 className="text-xl font-semibold mb-2">Final Assessment Complete!</h3>
+                       <div className="flex justify-center gap-4 mb-4">
+                         <Badge variant="outline" className="text-lg px-4 py-2">
+                           Final Score: {quizAttempts.postTest.score || 0}%
+                         </Badge>
+                         <Badge variant={
+                           (quizAttempts.postTest.score || 0) >= 90 ? 'default' : 
+                           (quizAttempts.postTest.score || 0) >= 80 ? 'default' : 
+                           (quizAttempts.postTest.score || 0) >= 70 ? 'secondary' : 'destructive'
+                         }>
+                           Level: {
+                             (quizAttempts.postTest.score || 0) >= 90 ? 'Mastered' : 
+                             (quizAttempts.postTest.score || 0) >= 80 ? 'Proficient' : 
+                             (quizAttempts.postTest.score || 0) >= 70 ? 'Developing' : 'Beginning'
+                           }
+                         </Badge>
+                       </div>
+                       <div className="text-center">
+                         <Badge variant={
+                           (quizAttempts.postTest.score || 0) >= 70 ? 'default' : 'destructive'
+                         } className="text-lg px-6 py-2 mb-4">
+                           {(quizAttempts.postTest.score || 0) >= 70 ? 'PASSED' : 'NOT PASSED'}
+                         </Badge>
+                       </div>
+                       <p className="text-muted-foreground mb-6">
+                         {quizAttempts.postTest.status === 'completed' 
+                           ? "Final assessment completed! Your score has been permanently saved."
+                           : "Assessment in progress. Please complete it to see your final results."
+                         }
+                       </p>
+                       {quizAttempts.postTest.status === 'completed' ? (
+                         <Button 
+                           size="lg"
+                           onClick={() => navigate(`/quiz/post-test/${topicId}`)}
+                           variant="outline"
+                         >
+                           <Eye className="mr-2 h-4 w-4" />
+                           View Results
+                         </Button>
+                       ) : (
+                         <Button 
+                           size="lg"
+                           onClick={() => navigate(`/quiz/post-test/${topicId}`)}
+                         >
+                           Continue Assessment
+                           <ArrowRight className="ml-2 h-4 w-4" />
+                         </Button>
+                       )}
+                     </div>
+                   ) : (
                     // Show start assessment
                     <div>
                       <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-500" />
