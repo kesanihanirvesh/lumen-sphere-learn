@@ -8,7 +8,9 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     allowedHosts: [
-      "93d50779bc31.ngrok-free.app", // ✅ allow your ngrok domain
+      "93d50779bc31.ngrok-free.app", // ✅ ngrok domain
+      "edu-lms.onrender.com",        // ✅ your render domain
+      "localhost",                   // ✅ safe for local dev
     ],
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
