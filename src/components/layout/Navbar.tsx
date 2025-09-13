@@ -166,7 +166,7 @@ export function Navbar() {
                   variant="ghost"
                   className="w-full justify-start"
                   onClick={() => {
-                    navigate('/profile');
+                    navigate('/profile', { state: { user, profile } });
                     setIsMobileMenuOpen(false);
                   }}
                 >

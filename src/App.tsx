@@ -17,7 +17,11 @@ import QuizTaking from "./pages/QuizTaking";
 import NotFound from "./pages/NotFound";
 import Myquizpage from "./pages/Myquizpage";
 import Myquiz from "./pages/Myquiz";
+import Profile from "./pages/Profile";
+import CreateGroup from "./pages/CreateGroup";
+import CreateCourse from "./pages/CreateCourse";
 
+import { MantineProvider } from "@mantine/core";
 
 const queryClient = new QueryClient();
 
@@ -27,33 +31,48 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <div className="min-h-screen">
-            <Navbar />
-            <main className="pt-16">
-              <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/courses" element={<Courses />} />
-              <Route path="/course/:courseId" element={<CourseDetail />} />
-              <Route path="/learn/:topicId" element={<LearningPath />} />
-              <Route path="/instructor" element={<InstructorDashboard />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/quiz/:quizType/:topicId" element={<QuizTaking />} />
-              {/* Redirect analytics to courses */}
-              <Route path="/analytics" element={<Navigate to="/courses" replace />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          
 
-              <Route path="/quizunique" element={<Myquizpage/>} />
-              <Route path="/myquiz" element={<Myquiz/>} />
+        {/* ✅ MantineProvider wraps the whole app */}
+        <MantineProvider
+          theme={{
+            primaryColor: "blue",
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          <BrowserRouter>
+            <div className="min-h-screen">
+              <Navbar />
+              <main className="pt-16">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/courses" element={<Courses />} />
+                  <Route path="/course/:courseId" element={<CourseDetail />} />
+                  <Route path="/learn/:topicId" element={<LearningPath />} />
+                  <Route path="/instructor" element={<InstructorDashboard />} />
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/quiz/:quizType/:topicId" element={<QuizTaking />} />
 
-              <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-          </div>
-        </BrowserRouter>
+                  {/* Redirect analytics to courses */}
+                  <Route path="/analytics" element={<Navigate to="/courses" replace />} />
+
+                  {/* Profile + Quiz Pages */}
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/quizunique" element={<Myquizpage />} />
+                  <Route path="/myquiz" element={<Myquiz />} />
+
+                  {/* Course & Group creation */}
+                  <Route path="/CreateCourse" element={<CreateCourse />} />
+                  <Route path="/CreateGroup" element={<CreateGroup />} />
+
+                  {/* Catch-all */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
+          </BrowserRouter>
+        </MantineProvider>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

@@ -5,7 +5,7 @@
     <key>originatorVersion</key>
     <string>SEB_Win_2.1.1</string>
     <key>startURL</key>
-    <string>https://93d50779bc31.ngrok-free.app/myquiz</string>
+    <string>https://edu-lms.onrender.com/myquiz</string>
     <key>startResource</key>
     <string />
     <key>sebServerURL</key>

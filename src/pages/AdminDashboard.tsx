@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Users, BookOpen, UserPlus, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+
 
 interface Course {
   id: string;
@@ -126,14 +127,14 @@ export default function AdminDashboard() {
     }
   };
 
+ 
+const navigate = useNavigate();
   const handleCreateCourse = () => {
-    // Navigate to course creation page or open modal
-    toast.info('Course creation feature coming soon');
+    navigate('/CreateCourse');
   };
 
   const handleCreateGroup = () => {
-    // Navigate to group creation page or open modal
-    toast.info('Group creation feature coming soon');
+    navigate('/CreateGroup');
   };
 
   const handleEnrollStudent = () => {
