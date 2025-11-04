@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { set } from "date-fns";
+import { useNavigate } from "react-router-dom";
+
 
 export default function CreateCourse() {
+  const navigate = useNavigate();
   const [course, setCourse] = useState({
     title: "",
     description: "",
@@ -10,9 +14,23 @@ export default function CreateCourse() {
     price: "",
     difficulty_level: "",
     is_active: true,
+    instructor_id: "",
   });
   const [loading, setLoading] = useState(false);
+  const [instructors, setInstructors] = useState<any[]>([]);
   const { user } = useAuth();
+
+  // Fetch all instructors from the "instructors" table
+  useEffect(() => {
+    const fetchInstructors = async () => {
+      const { data, error } = await supabase
+        .from("instructors")
+        .select("full_name");
+
+      if (!error && data) setInstructors(data);
+    };
+    fetchInstructors();
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -23,31 +41,48 @@ export default function CreateCourse() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { title, description, category, difficulty_level, is_active } = course;
-    const { error } = await supabase
-      .from("courses")
-      .insert([{
-        title,
-        description,
-        category,
-        difficulty_level,
-        is_active,
-        instructor_id: user?.id
-      }]);
+    const { title, description, category, difficulty_level, is_active, instructor } = course;
+    
+    const { data: instructorData, error: instructorError } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("full_name", instructor)
+    .eq("role", "instructor")
+    .maybeSingle();
+
+  if (instructorError || !instructorData) {
+    alert("Failed to fetch instructor: " + (instructorError?.message || "Instructor not found"));
     setLoading(false);
-    if (error) {
-      alert("Failed to create course: " + error.message);
-    } else {
-      alert("Course created successfully!");
-      setCourse({
-        title: "",
-        description: "",
-        category: "",
-        price: "",
-        difficulty_level: "",
-        is_active: true,
-      });
-    }
+    return;
+  }
+
+  const instructor_id = instructorData.user_id;
+  const instructors = instructor;
+  console.log("Instructor ID:", instructor_id);
+  console.log("Current User ID:", instructors);
+  
+
+  // Insert course with instructor info
+  const { error } = await supabase.from("courses").insert([
+    {
+      title,
+      description,
+      category,
+      difficulty_level,
+      is_active,
+      instructor_id,
+      instructors,
+    },
+  ]);
+  if (!error) {
+    alert("Course created successfully!");
+  }
+  else{
+    alert("Error creating course: " + error.message);
+  }
+  setLoading(false);
+  navigate(-1);
+  
   };
 
   return (
@@ -58,7 +93,7 @@ export default function CreateCourse() {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
+          {/* Course Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Course Title
@@ -72,6 +107,27 @@ export default function CreateCourse() {
               placeholder="Enter course title"
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition"
             />
+          </div>
+
+          {/* Instructor Selection */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Instructor
+            </label>
+            <select
+              name="instructor"
+              value={course.instructor}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition"
+            >
+              <option value="">Select Instructor</option>
+              {instructors.map((instructor) => (
+                <option key={instructor.id} value={instructor.id}>
+                  {instructor.full_name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Description */}
@@ -124,7 +180,7 @@ export default function CreateCourse() {
             </select>
           </div>
 
-          {/* Active status */}
+          {/* Active Status */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Status
@@ -132,7 +188,7 @@ export default function CreateCourse() {
             <select
               name="is_active"
               value={course.is_active ? "true" : "false"}
-              onChange={e =>
+              onChange={(e) =>
                 setCourse({ ...course, is_active: e.target.value === "true" })
               }
               required
@@ -143,7 +199,7 @@ export default function CreateCourse() {
             </select>
           </div>
 
-          {/* Submit button */}
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}

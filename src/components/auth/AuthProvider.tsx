@@ -104,40 +104,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string, role: string = 'student') => {
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName,
-            role: role
-          }
-        }
+  const signUp = async (
+  email: string,
+  password: string,
+  fullName: string,
+  role: string = 'student'
+) => {
+  try {
+    const redirectUrl = `${window.location.origin}/`;
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: { full_name: fullName, role },
+      },
+    });
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Sign Up Failed',
+        description: error.message,
       });
-      
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Sign Up Failed",
-          description: error.message,
-        });
-      } else {
-        toast({
-          title: "Account Created!",
-          description: "Please check your email to verify your account.",
-        });
-      }
-      
-      return { error };
-    } catch (error) {
       return { error };
     }
-  };
+
+    toast({
+      title: 'Account Created!',
+      description: 'Please check your email to verify your account.',
+    });
+
+    // ✅ Wait for the user object to exist before inserting
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+
+    if (role === 'instructor' ) {
+      const { error: profileError } = await supabase.from('instructors').insert([
+        {
+          full_name: fullName,
+          email,
+          user_id: userId,
+        },
+      ]);
+
+      if (profileError) {
+        console.error('Error creating instructor profile:', profileError);
+      } else {
+        console.log('Instructor added successfully');
+      }
+    }
+
+    return { error: null };
+  } catch (error: any) {
+    console.error('Unexpected error:', error);
+    return { error };
+  }
+};
+
 
   const signOut = async () => {
     try {
@@ -177,3 +202,4 @@ export function useAuth() {
   }
   return context;
 }
+

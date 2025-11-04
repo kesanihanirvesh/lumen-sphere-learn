@@ -116,6 +116,7 @@ export default function LearningPath() {
         `)
         .eq('id', topicId)
         .single();
+      
 
       if (error) throw error;
 
