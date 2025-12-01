@@ -27,12 +27,13 @@ import PreQuiz from "./pages/PreQuiz";
 import PostQuiz from "./pages/PostQuiz";
 import Practices from "./pages/Practices";
 import AddStudent from "./pages/AddStudent";
-import AddStudents from "./pages/AddStudents";
+import AddStudents from "./pages/AddStudent";
 import InstructorSignup from "./pages/InstructorSignup";
 import StudentSignup from "./pages/StudentSignup";
 import ListView from "./components/dashboard/ListView";
 import AddTopic from "./pages/AddTopic";
 import Manage_module from "./pages/Manage_module";
+//import ExamPage from "./ExamPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -44,6 +45,7 @@ const App = () => (
         <BrowserRouter>
           <div className="min-h-screen">
             <Navbar />
+            {/* <ExamPage/> */}
             <main className="pt-16">
               <Routes>
               <Route path="/" element={<Index />} />
