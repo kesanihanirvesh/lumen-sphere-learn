@@ -84,9 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       });
-      if(!error){
-        alert("role",profile?.role);
-      }
+      
       
       if (error) {
         toast({

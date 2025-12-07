@@ -63,22 +63,27 @@ export default function LearningPath() {
   const { topicId } = useParams<{ topicId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // ALL useState at the top
   const [topic, setTopic] = useState<Topic | null>(null);
   const [learningStyle, setLearningStyle] = useState<LearningStyle | null>(null);
   const [currentPhase, setCurrentPhase] = useState<'pre_test' | 'learning' | 'practice' | 'post_test'>('pre_test');
   const [loading, setLoading] = useState(true);
   const [quizAttempts, setQuizAttempts] = useState<any>({});
   const [overallProgress, setOverallProgress] = useState(0);
+  const [urls, setUrls] = useState<any[]>([]);
+  const [addingUrl, setAddingUrl] = useState(false);
 
+  // ALL useEffect after useState
   useEffect(() => {
     if (topicId && user) {
       fetchTopicAndProgress();
       fetchLearningStyle();
       fetchQuizAttempts();
+      fetchUrlsForTopic(); 
     }
   }, [topicId, user]);
 
-  // Add refresh logic to detect completed assessments
   useEffect(() => {
     const handleFocus = () => {
       if (topicId && user) {
@@ -100,6 +105,27 @@ export default function LearningPath() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [topicId, user]);
+
+  // ALL async functions AFTER useEffect
+  const fetchUrlsForTopic = async () => {
+    if (!topicId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("url")
+        .select("*")
+        .eq("topic_id", topicId);
+
+      if (error) {
+        console.error("Error fetching URLs:", error);
+        return;
+      }
+
+      setUrls(data || []);
+    } catch (err) {
+      console.error("Error fetching URLs:", err);
+    }
+  };
 
   const fetchTopicAndProgress = async () => {
     try {
@@ -127,7 +153,6 @@ export default function LearningPath() {
 
       setTopic(topicData);
 
-      // Calculate overall progress and determine current phase
       const { phase, progress } = calculateProgressAndPhase(topicData);
       setCurrentPhase(phase);
       setOverallProgress(progress);
@@ -192,24 +217,19 @@ export default function LearningPath() {
     let progress = 0;
     let phase: 'pre_test' | 'learning' | 'practice' | 'post_test' = 'pre_test';
 
-    // Phase 1: Pre-test (25% when completed)
     if (hasPreTest) {
       progress += 25;
       phase = 'learning';
       
-      // Phase 2: Learning materials (50% when all completed)
       if (materialsCount > 0) {
         const materialProgress = Math.min((completedMaterials / materialsCount) * 50, 50);
         progress += materialProgress;
         
         if (completedMaterials === materialsCount) {
           phase = 'practice';
-          
-          // Phase 3: Practice (75% when engaged)
-          progress += 15; // Assume practice engagement
+          progress += 15;
           phase = 'post_test';
           
-          // Phase 4: Post-test (100% when completed)
           if (hasPostTest) {
             progress = 100;
           }
@@ -258,10 +278,7 @@ export default function LearningPath() {
 
       if (error) throw error;
 
-      // Update enrollment progress
       await updateEnrollmentProgress();
-      
-      // Refresh topic and progress data
       await fetchTopicAndProgress();
     } catch (error) {
       console.error('Error updating progress:', error);
@@ -270,7 +287,6 @@ export default function LearningPath() {
 
   const updateEnrollmentProgress = async () => {
     try {
-      // Calculate overall course progress based on all topics
       const { data: allTopics } = await supabase
         .from('course_topics')
         .select(`
@@ -309,7 +325,7 @@ export default function LearningPath() {
     }
   };
 
-
+  // Rest of component JSX...
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -338,6 +354,9 @@ export default function LearningPath() {
   }
 
   const StyleIcon = getStyleIcon(learningStyle?.primary_style || 'visual');
+
+
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -508,79 +527,64 @@ export default function LearningPath() {
           </TabsContent>
 
           <TabsContent value="learning" className="mt-6">
-            {getFilteredMaterials().filter(m => ['video', 'audio', 'document'].includes(m.material_type)).length === 0 && (
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>No materials available</CardTitle>
-                  <CardDescription>
-                    You might need to enroll in this course to access learning materials.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-3">
-                    <Button onClick={enrollInCourse}>Enroll in course</Button>
-                    <Button variant="outline" onClick={fetchTopicAndProgress}>Refresh</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            <div className="grid gap-6">
-              {getFilteredMaterials()
-                .filter(m => ['video', 'audio', 'document'].includes(m.material_type))
-                .map((material) => (
-                  <Card key={material.id}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="flex items-center gap-2">
-                            <StyleIcon className="h-5 w-5" />
-                            {material.title}
-                          </CardTitle>
-                          <CardDescription>{material.description}</CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{material.material_type}</Badge>
-                          <div className="text-sm text-muted-foreground">
-                            {material.duration_minutes} min
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                         <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
-                           {material.content_url ? (
-                             <iframe
-                               src={material.content_url}
-                               title={material.title}
-                               className="w-full h-full rounded-lg"
-                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                               referrerPolicy="strict-origin-when-cross-origin"
-                               allowFullScreen
-                             />
-                           ) : (
-                             <div className="text-center">
-                               <StyleIcon className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                               <p className="text-muted-foreground">Content will be available soon</p>
-                               <p className="text-sm text-muted-foreground mt-1">
-                                 {material.material_type} • {material.duration_minutes} min
-                               </p>
-                             </div>
-                           )}
-                         </div>
-                        <Button 
-                          className="w-full"
-                          onClick={() => updateProgress('material_viewed')}
-                        >
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Mark as Complete
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+  {urls.length === 0 && (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>No materials available</CardTitle>
+        <CardDescription>
+          Add learning materials to make them visible here.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Button onClick={() => setAddingUrl(true)}>Add URL</Button>
+      </CardContent>
+    </Card>
+  )}
+
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {urls.map((item) => (
+      <Card key={item.id}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              {item.url_type?.toUpperCase() || "LINK"}
+            </CardTitle>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="space-y-4">
+            <div className="aspect-video bg-muted rounded-lg flex items-center justify-center">
+              {item.url_type === "video" ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${new URL(item.url).searchParams.get("v")}`}
+                  title="Learning Video"
+                  className="w-full h-full rounded-lg"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline"
+                >
+                  {item.url}
+                </a>
+              )}
             </div>
-          </TabsContent>
+
+            <Button className="w-full" onClick={() => updateProgress('material_viewed')}>
+              Mark as Complete
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+</TabsContent>
+
 
           <TabsContent value="practice" className="mt-6">
             <Card>

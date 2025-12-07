@@ -12,55 +12,54 @@ export default function ListView({ table, columns }: ListViewProps) {
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<Record<string, any>>({});
 
-  // Fetch Data
+  // Fetch all data including primary key
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const { data: rows, error } = await supabase
-        .from(table)
-        .select(columns?.join(",") || "*");
-
-      if (error) console.error("Error fetching data:", error.message);
-      else setData(rows || []);
-
+      const { data: rows, error } = await supabase.from(table).select("*");
+      if (error) {
+        console.error("Error fetching data:", error.message);
+        setData([]);
+      } else {
+        setData(rows || []);
+      }
       setLoading(false);
     };
     fetchData();
-  }, [table, columns]);
+  }, [table]);
 
   const handleEdit = (index: number) => {
     setEditingRow(index);
-    setEditValues(data[index]); // includes id fields
+    setEditValues(data[index]);
   };
 
   const handleChange = (col: string, value: string) => {
-    setEditValues((prev) => ({ ...prev, [col]: value }));
+    let v: any = value;
+
+    // Convert to number if numeric
+    if (!isNaN(Number(value)) && value.trim() !== "") v = Number(value);
+    // Convert to boolean
+    if (value === "true" || value === "false") v = value === "true";
+    // Empty → null
+    if (value.trim() === "") v = null;
+
+    setEditValues((prev) => ({ ...prev, [col]: v }));
   };
 
-  // 🔥 Remove ALL id / uuid fields before sending update
+  // Prepare safe update values excluding id and undefined
   const sanitizeUpdate = () => {
     const result: Record<string, any> = {};
-
     for (const [key, val] of Object.entries(editValues)) {
-      const isIdField =
-        key.toLowerCase() === "id" || key.toLowerCase().endsWith("id");
-
-      if (!isIdField) {
-        result[key] = val; // only normal fields kept
-      }
+      if (key === "id") continue;
+      if (val === undefined) continue;
+      result[key] = val;
     }
-
     return result;
   };
 
-  const handleSave = async (id: any) => {
-    const cleanValues = sanitizeUpdate(); // UUID safe
-
-    const { error } = await supabase
-      .from(table)
-      .update(cleanValues)
-      .eq("id", id);
-
+  const handleSave = async (id: string) => {
+    const cleanValues = sanitizeUpdate();
+    const { error } = await supabase.from(table).update(cleanValues).eq("id", id);
     if (error) {
       alert("Error updating: " + error.message);
       return;
@@ -70,76 +69,84 @@ export default function ListView({ table, columns }: ListViewProps) {
     setData((prev) =>
       prev.map((row) => (row.id === id ? { ...row, ...cleanValues } : row))
     );
-
     setEditingRow(null);
   };
 
-  if (loading) return <p className="text-center text-gray-500 mt-4">Loading...</p>;
-  if (!data.length) return <p className="text-center text-gray-500 mt-4">No records found.</p>;
+  if (loading)
+    return <p className="text-center text-gray-500 mt-4">Loading...</p>;
+  if (!data.length)
+    return <p className="text-center text-gray-500 mt-4">No records found.</p>;
 
-  // Auto-detected columns minus UUID/ID fields
-  const displayColumns = (columns || Object.keys(data[0])).filter(
-    (col) => !col.toLowerCase().endsWith("id") // remove: id, topic_id, user_id, etc.
-  );
+  // Auto-detect columns excluding primary key
+  const displayColumns = Object.keys(data[0]).filter((col) => col !== "id");
 
   return (
-    <div className="overflow-x-auto shadow-lg rounded-lg border border-gray-200 bg-white mt-4">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-100">
-          <tr>
-            {displayColumns.map((col) => (
-              <th
-                key={col}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-              >
-                {col.replaceAll("_", " ")}
-              </th>
-            ))}
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
+    <div className="w-full overflow-x-auto mt-6">
+      <div className="inline-block min-w-full align-middle">
+        <div className="overflow-hidden border border-blue-300 shadow-xl rounded-xl">
+          <table className="min-w-full divide-y divide-blue-300">
+            <thead className="bg-blue-600 sticky top-0 z-10 shadow-sm">
+              <tr>
+                {displayColumns.map((col) => (
+                  <th
+                    key={col}
+                    className="px-6 py-3 text-left text-sm font-semibold text-white tracking-wider uppercase"
+                  >
+                    {col.replaceAll("_", " ")}
+                  </th>
+                ))}
+                <th className="px-6 py-3 text-left text-sm font-semibold text-white uppercase">
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
-        <tbody className="bg-white divide-y divide-gray-200">
-          {data.map((row, idx) => (
-            <tr key={row.id} className="hover:bg-gray-50 transition-colors duration-200">
-              {displayColumns.map((col) => (
-                <td key={col} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {editingRow === idx ? (
-                    <input
-                      type="text"
-                      value={editValues[col] ?? ""}
-                      onChange={(e) => handleChange(col, e.target.value)}
-                      className="border rounded px-2 py-1 text-sm w-full"
-                    />
-                  ) : (
-                    row[col]
-                  )}
-                </td>
+            <tbody className="bg-white divide-y divide-blue-200">
+              {data.map((row, idx) => (
+                <tr
+                  key={row.id}
+                  className="hover:bg-blue-50 transition duration-150 even:bg-blue-50/40"
+                >
+                  {displayColumns.map((col) => (
+                    <td key={col} className="px-6 py-4 text-sm text-gray-900">
+                      {editingRow === idx ? (
+                        <input
+                          type="text"
+                          value={editValues[col] ?? ""}
+                          onChange={(e) => handleChange(col, e.target.value)}
+                          className="w-full px-3 py-1.5 border border-blue-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-md text-sm"
+                        />
+                      ) : (
+                        <span className="block truncate max-w-[180px]">
+                          {String(row[col] ?? "")}
+                        </span>
+                      )}
+                    </td>
+                  ))}
+
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {editingRow === idx ? (
+                      <button
+                        onClick={() => handleSave(row.id)}
+                        className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-1.5 rounded-lg shadow-sm transition"
+                      >
+                        Save
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleEdit(idx)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg shadow-sm transition"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </td>
+                </tr>
               ))}
-
-              <td className="px-6 py-4">
-                {editingRow === idx ? (
-                  <button
-                    onClick={() => handleSave(row.id)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
-                  >
-                    Save
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleEdit(idx)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
-                  >
-                    Edit
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

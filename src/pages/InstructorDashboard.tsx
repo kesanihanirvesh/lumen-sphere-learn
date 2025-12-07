@@ -286,7 +286,7 @@ export default function InstructorDashboard() {
                             View
                           </Button>
                         </Link>
-                        <Link to={`/edit-course/${course.id}`} className="flex-1">
+                        <Link to={`/courses/${course.id}/modules`} className="flex-1">
                           <Button size="sm" className="w-full">
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
