@@ -16,30 +16,38 @@ export default function Auth() {
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState('student');
   const [loading, setLoading] = useState(false);
-  
+
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
+  // 🚀 Auto redirect based on saved role
   useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      const role = localStorage.getItem("role");
+
+      if (role === "admin") navigate("/admin-dashboard");
+      else if (role === "instructor") navigate("/instructor-dashboard");
+      else navigate("/dashboard"); // student fallback
     }
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (isSignUp) {
         const { error } = await signUp(email, password, fullName, role);
-        if (!error) {
-          setIsSignUp(false);
-        }
+        if (!error) setIsSignUp(false);
       } else {
         const { error } = await signIn(email, password);
         if (!error) {
-          navigate('/dashboard');
+          // temporary fallback (auto redirect will still run)
+          const role = localStorage.getItem("role");
+
+      if (role === "admin") navigate("/admin-dashboard");
+      else if (role === "instructor") navigate("/instructor-dashboard");
+      else navigate("/dashboard");
         }
       }
     } finally {
@@ -50,7 +58,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen relative overflow-hidden mesh-gradient">
       <FloatingShapes />
-      
+
       <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
         <div className="w-full max-w-md animate-slide-up-fade">
           <Card className="glass-card border-white/20">
@@ -60,13 +68,12 @@ export default function Auth() {
               </div>
               <div>
                 <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  {isSignUp ? 'Join EduSphere' : 'Welcome Back'}
+                  {isSignUp ? "Join EduSphere" : "Welcome Back"}
                 </CardTitle>
                 <CardDescription className="text-muted-foreground">
                   {isSignUp
-                    ? 'Create your account to start learning'
-                    : 'Sign in to continue your learning journey'
-                  }
+                    ? "Create your account to start learning"
+                    : "Sign in to continue your learning journey"}
                 </CardDescription>
               </div>
             </CardHeader>
@@ -85,7 +92,7 @@ export default function Auth() {
                       placeholder="Enter your full name"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      required={isSignUp}
+                      required
                       className="glass-button"
                     />
                   </div>
@@ -138,17 +145,12 @@ export default function Auth() {
                   </div>
                 )}
 
-                <Button
-                  type="submit"
-                  className="w-full btn-hero"
-                  disabled={loading}
-                >
+                <Button type="submit" disabled={loading} className="w-full btn-hero">
                   {loading
-                    ? 'Please wait...'
+                    ? "Please wait..."
                     : isSignUp
-                    ? 'Create Account'
-                    : 'Sign In'
-                  }
+                    ? "Create Account"
+                    : "Sign In"}
                 </Button>
 
                 <div className="text-center">
@@ -159,9 +161,8 @@ export default function Auth() {
                     className="text-muted-foreground hover:text-primary"
                   >
                     {isSignUp
-                      ? 'Already have an account? Sign in'
-                      : "Don't have an account? Sign up"
-                    }
+                      ? "Already have an account? Sign in"
+                      : "Don't have an account? Sign up"}
                   </Button>
                 </div>
               </form>

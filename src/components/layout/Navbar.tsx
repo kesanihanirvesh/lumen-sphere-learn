@@ -39,10 +39,10 @@ export function Navbar() {
   // Add role-specific navigation items
   const roleSpecificItems = [];
   if (profile?.role === 'instructor') {
-    roleSpecificItems.push({ name: 'Instructor', href: '/instructor', icon: Settings });
+    roleSpecificItems.push({ name: 'Instructor', href: '/instructor-dashboard', icon: Settings });
   }
   if (profile?.role === 'admin') {
-    roleSpecificItems.push({ name: 'Admin Panel', href: '/admin', icon: Settings });
+    roleSpecificItems.push({ name: 'Admin Panel', href: '/admin-dashboard', icon: Settings });
   }
 
   const allNavItems = [...navItems, ...roleSpecificItems];

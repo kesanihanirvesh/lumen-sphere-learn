@@ -38,6 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        const role = session?.user?.user_metadata?.role;
+if (role) {
+  localStorage.setItem("role", role);
+}
         
         if (session?.user) {
           // Fetch user profile

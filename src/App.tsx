@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Navbar } from "@/components/layout/Navbar";
+
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -27,13 +28,15 @@ import PreQuiz from "./pages/PreQuiz";
 import PostQuiz from "./pages/PostQuiz";
 import Practices from "./pages/Practices";
 import AddStudent from "./pages/AddStudent";
-import AddStudents from "./pages/AddStudent";
 import InstructorSignup from "./pages/InstructorSignup";
 import StudentSignup from "./pages/StudentSignup";
 import ListView from "./components/dashboard/ListView";
 import AddTopic from "./pages/AddTopic";
 import Manage_module from "./pages/Manage_module";
-//import ExamPage from "./ExamPage";
+
+import PrivateRoute from "./PrivateRoute";
+import RoleRoute from "./RoleRoute";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -45,46 +48,255 @@ const App = () => (
         <BrowserRouter>
           <div className="min-h-screen">
             <Navbar />
-            {/* <ExamPage/> */}
             <main className="pt-16">
               <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/create-course" element={<CreateCourse />} />
-              <Route path="/create-group" element={<CreateGroup />} />
-              <Route path="/courses" element={<Courses />} />
-              <Route path="/course/:courseId" element={<CourseDetail />} />
-              <Route path="/learn/:topicId" element={<LearningPath />} />
-              <Route path="/instructor" element={<InstructorDashboard />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/enroll-course" element={<EnrollCourse />} />
-              <Route path="/manage-members" element={<ManageMembers />} />
-              <Route path="/quiz/:quizType/:topicId" element={<QuizTaking />} />
-              <Route path="/courses/:courseId/modules" element={<CourseModules />} />
-              {/* Redirect analytics to courses */}
-              <Route path="/analytics" element={<Navigate to="/courses" replace />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="/topic/:topicId" element={<TopicDetail />} />
-              <Route path="/manage-module/:moduleId" element={<Manage_module />} />
 
-              <Route path="/quizunique" element={<Myquizpage/>} />
-              <Route path="/courses/:courseId/add-student" element={<AddStudent />} />
-              
-              <Route path="/myquiz" element={<Myquiz/>} />
-              <Route path="/courses/:courseId/modules/:moduleId/add-topic"element={<AddTopic />}/>
-              <Route path="/admin/instructor-signup" element={<InstructorSignup />} />
-              <Route path="/student-signup" element={<StudentSignup />} />
-              <Route path="/courses/:courseId/modules/:moduleId/topics/:topicId/pre-quiz"element={<PreQuiz />}/>
-              <Route path="/courses/:courseId/modules/:moduleId/topics/:topicId/post-quiz"element={<PostQuiz />}/>
-              <Route path="/courses/:courseId/modules/:moduleId/topics/:topicId/practices"element={<Practices />}/>
+                {/* PUBLIC ROUTES */}
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/student-signup" element={<StudentSignup />} />
+                <Route path="/admin/instructor-signup" element={<InstructorSignup />} />
 
-              <Route path="/admin/student" element={<ListView table="student" columns={['student_name', 'email']} />} />
-              <Route path="/admin/instructor-list" element={<ListView table="instructors" columns={['full_name', 'email','course']} />} />
-              <Route path="/admin/courses" element={<ListView table="courses" columns={['title','description']} />} />
-              <Route path="/admin/group" element={<ListView table="student_groups" columns={['name', 'description']} />} />
+                {/* DASHBOARD - All logged-in roles */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student"]}>
+                        <Dashboard />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
 
-              <Route path="*" element={<NotFound />} />
+                {/* ADMIN ONLY */}
+                <Route
+                  path="/admin-dashboard"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["admin"]}>
+                        <AdminDashboard />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/student"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["admin"]}>
+                        <ListView table="student" columns={["student_name", "email"]} />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/instructor-list"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["admin"]}>
+                        <ListView table="instructors" columns={["full_name", "email", "course"]} />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/courses"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["admin"]}>
+                        <ListView table="courses" columns={["title", "description"]} />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/group"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["admin"]}>
+                        <ListView table="student_groups" columns={["name", "description"]} />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                {/* INSTRUCTOR ONLY */}
+                <Route
+                  path="/instructor-dashboard"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["instructor"]}>
+                        <InstructorDashboard />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                {/* STUDENT + INSTRUCTOR + ADMIN */}
+                <Route
+                  path="/create-course"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["instructor", "admin"]}>
+                        <CreateCourse />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/create-group"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["instructor", "admin"]}>
+                        <CreateGroup />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/courses"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student", "instructor", "admin"]}>
+                        <Courses />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/course/:courseId"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student", "instructor", "admin"]}>
+                        <CourseDetail />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/learn/:topicId"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student", "instructor", "admin"]}>
+                        <LearningPath />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route path="/analytics" element={<Navigate to="/courses" replace />} />
+
+                <Route
+                  path="/topic/:topicId"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student", "instructor", "admin"]}>
+                        <TopicDetail />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/manage-module/:moduleId"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["instructor", "admin"]}>
+                        <Manage_module />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/quizunique"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student", "instructor", "admin"]}>
+                        <Myquizpage />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/courses/:courseId/add-student"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["instructor", "admin"]}>
+                        <AddStudent />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/myquiz"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student"]}>
+                        <Myquiz />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/courses/:courseId/modules/:moduleId/add-topic"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["instructor", "admin"]}>
+                        <AddTopic />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                {/* STUDENT ONLY */}
+                <Route
+                  path="/courses/:courseId/modules/:moduleId/topics/:topicId/pre-quiz"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student"]}>
+                        <PreQuiz />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/courses/:courseId/modules/:moduleId/topics/:topicId/post-quiz"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student"]}>
+                        <PostQuiz />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                <Route
+                  path="/courses/:courseId/modules/:moduleId/topics/:topicId/practices"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student"]}>
+                        <Practices />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
 
               </Routes>
             </main>
