@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,8 @@ import {
   PlayCircle,
   FileText,
   Brain,
-  Target
+  Target,
+  ClipboardList
 } from 'lucide-react';
 
 interface CourseModule {
@@ -70,6 +71,7 @@ interface Course {
 export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [finalAssessmentAttempt, setFinalAssessmentAttempt] = useState<any>(null);
@@ -351,6 +353,28 @@ export default function CourseDetail() {
                               Start Learning
                             </Button>
                           )}
+
+                          {/* Pre & Post Assessment Buttons */}
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs"
+                              onClick={() => navigate(`/quiz/pre-test/${topic.id}`)}
+                            >
+                              <ClipboardList className="mr-1 h-3 w-3" />
+                              Pre-Test
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs"
+                              onClick={() => navigate(`/quiz/post-test/${topic.id}`)}
+                            >
+                              <ClipboardList className="mr-1 h-3 w-3" />
+                              Post-Test
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}

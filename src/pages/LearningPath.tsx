@@ -181,22 +181,23 @@ export default function LearningPath() {
 
   const fetchQuizAttempts = async () => {
     try {
+      // Check student_progress for pre/post test completion for this topic
       const { data, error } = await supabase
-        .from('quiz_attempts')
+        .from('student_progress')
         .select('*')
         .eq('student_id', user?.id)
-        .or(`quiz_id.eq.${topicId}-pre-test,quiz_id.eq.quiz-${topicId}-pre-test,quiz_id.eq.${topicId}-post-test,quiz_id.eq.quiz-${topicId}-post-test`)
-        .in('status', ['completed', 'in_progress'])
+        .eq('topic_id', topicId)
+        .in('progress_type', ['pre_test', 'post_test'])
         .order('created_at', { ascending: false });
 
-      if (error && error.code !== 'PGRST116') throw error;
-      
+      if (error) throw error;
+
       const attempts: any = {};
       data?.forEach((attempt: any) => {
-        if (attempt.quiz_id.includes('pre-test') && !attempts.preTest) {
-          attempts.preTest = attempt;
-        } else if (attempt.quiz_id.includes('post-test') && !attempts.postTest) {
-          attempts.postTest = attempt;
+        if (attempt.progress_type === 'pre_test' && !attempts.preTest) {
+          attempts.preTest = { ...attempt, status: attempt.is_completed ? 'completed' : 'in_progress' };
+        } else if (attempt.progress_type === 'post_test' && !attempts.postTest) {
+          attempts.postTest = { ...attempt, status: attempt.is_completed ? 'completed' : 'in_progress' };
         }
       });
       
@@ -210,9 +211,10 @@ export default function LearningPath() {
     const hasPreTest = quizAttempts.preTest?.status === 'completed';
     const hasPostTest = quizAttempts.postTest?.status === 'completed';
     const materialsCount = topicData.materials?.length || 0;
-    const completedMaterials = topicData.progress?.filter((p: any) => 
-      p.progress_type === 'material' && p.is_completed
-    )?.length || 0;
+    const progressEntry = topicData.progress;
+    const completedMaterials = Array.isArray(progressEntry)
+      ? progressEntry.filter((p: any) => p.progress_type === 'material' && p.is_completed).length
+      : (progressEntry?.progress_type === 'material' && progressEntry?.is_completed ? 1 : 0);
 
     let progress = 0;
     let phase: 'pre_test' | 'learning' | 'practice' | 'post_test' = 'pre_test';
