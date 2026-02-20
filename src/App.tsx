@@ -33,6 +33,7 @@ import StudentSignup from "./pages/StudentSignup";
 import ListView from "./components/dashboard/ListView";
 import AddTopic from "./pages/AddTopic";
 import Manage_module from "./pages/Manage_module";
+import CreateAssignment from "./pages/CreateAssignment";
 
 
 import PrivateRoute from "./PrivateRoute";
@@ -82,6 +83,9 @@ const App = () => (
                     </PrivateRoute>
                   }
                 />
+                <Route
+                     path="/courses/:courseId/create-assignment"
+                           element={<CreateAssignment />}/>
 
                 <Route
                   path="/admin/student"
