@@ -58,7 +58,11 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/student-signup" element={<StudentSignup />} />
                 <Route path="/admin/instructor-signup" element={<InstructorSignup />} />
-                <Route path="/admin-dashboard/instructor-signup" element={<InstructorSignup />} />
+                <Route path="/admin-dashboard/instructor-signup" element={<PrivateRoute>
+                      <RoleRoute allowedRoles={["student","admin"]}>
+                        <InstructorSignup />
+                      </RoleRoute>
+                    </PrivateRoute>} />
 
                 {/* DASHBOARD - All logged-in roles */}
                 <Route
