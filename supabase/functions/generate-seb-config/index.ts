@@ -88,7 +88,6 @@ serve(async (req) => {
       enableF12: false,
       enableStartMenu: false,
       enableRightMouse: false,
-      enablePrintScreen: false,
       enableWindowsUpdate: false,
       killExplorerShell: true,
       allowQuit: false,
@@ -124,10 +123,7 @@ serve(async (req) => {
       enableZoomText: true,
       enableZoomPage: true,
       zoomMode: 0,
-      allowSpellCheck: false,
       blockPopUpWindows: true,
-      allowVideoCapture: false,
-      allowAudioCapture: false,
       allowCamera: false,
       allowMicrophone: false,
       enablePlugIns: false,
@@ -153,7 +149,6 @@ serve(async (req) => {
       hashedRestartExamPassword: "",
       allowReconfiguration: false,
       hashedAdminPassword: "",
-      allowPreferencesWindow: false,
       permittedProcesses: [],
       prohibitedProcesses: [
         {
@@ -224,10 +219,11 @@ serve(async (req) => {
       },
     });
 
-  } catch (error) {
-    console.error('Error in generate-seb-config function:', error);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Error in generate-seb-config function:', err);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

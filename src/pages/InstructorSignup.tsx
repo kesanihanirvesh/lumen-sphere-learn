@@ -4,26 +4,56 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { useAuth } from '@/components/auth/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function InstructorSignup() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { signUp } = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const handleSignup = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  const { error, data } = await signUp(email, password, fullName, 'instructor');
-  setLoading(false);
+    e.preventDefault();
+    setLoading(true);
 
-  navigate(-1);
-};
+    try {
+      // Get the current admin's session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await supabase.functions.invoke('create-instructor', {
+        body: { email, password, fullName },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
 
+      if (response.error) {
+        toast({
+          variant: 'destructive',
+          title: 'Failed to create instructor',
+          description: response.error.message || 'An error occurred',
+        });
+      } else {
+        toast({
+          title: 'Instructor Created!',
+          description: `${fullName} has been successfully added as an instructor.`,
+        });
+        navigate(-1);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex justify-center items-center min-h-screen">
@@ -46,7 +76,7 @@ export default function InstructorSignup() {
               <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating...' : 'Sign Up'}
+              {loading ? 'Creating...' : 'Create Instructor'}
             </Button>
           </form>
         </CardContent>
