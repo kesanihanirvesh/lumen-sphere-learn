@@ -315,6 +315,18 @@ const App = () => (
                   }
                 />
 
+                {/* QUIZ TAKING */}
+                <Route
+                  path="/quiz/:quizType/:topicId"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["student", "instructor", "admin"]}>
+                        <QuizTaking />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+
                 {/* 404 */}
                 <Route path="*" element={<NotFound />} />
 

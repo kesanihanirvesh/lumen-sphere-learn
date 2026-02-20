@@ -14,8 +14,8 @@ export default function AddStudent() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await supabase
-      .from('students')
-      .insert([{ student_name: studentName, student_email: studentEmail }]);
+      .from('student')
+      .insert([{ student_name: studentName, email: studentEmail }]);
     if (!error) navigate('/students');
   };
 

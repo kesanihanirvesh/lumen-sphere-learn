@@ -16,7 +16,7 @@ export default function ListView({ table, columns }: ListViewProps) {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const { data: rows, error } = await supabase.from(table).select("*");
+      const { data: rows, error } = await supabase.from(table as any).select("*");
       if (error) {
         console.error("Error fetching data:", error.message);
         setData([]);
@@ -59,7 +59,7 @@ export default function ListView({ table, columns }: ListViewProps) {
 
   const handleSave = async (id: string) => {
     const cleanValues = sanitizeUpdate();
-    const { error } = await supabase.from(table).update(cleanValues).eq("id", id);
+    const { error } = await supabase.from(table as any).update(cleanValues).eq("id", id);
     if (error) {
       alert("Error updating: " + error.message);
       return;
@@ -92,7 +92,7 @@ export default function ListView({ table, columns }: ListViewProps) {
                     key={col}
                     className="px-6 py-3 text-left text-sm font-semibold text-white tracking-wider uppercase"
                   >
-                    {col.replaceAll("_", " ")}
+                    {col.replace(/_/g, " ")}
                   </th>
                 ))}
                 <th className="px-6 py-3 text-left text-sm font-semibold text-white uppercase">

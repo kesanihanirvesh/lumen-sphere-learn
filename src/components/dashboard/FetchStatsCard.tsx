@@ -24,7 +24,7 @@ export default function FetchStatsCard({
   useEffect(() => {
     const fetchCount = async () => {
       const { count, error } = await supabase
-        .from(table)
+        .from(table as any)
         .select('*', { count: 'exact', head: true });
       if (!error && count !== null) setCount(count);
     };

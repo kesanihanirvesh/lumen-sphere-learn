@@ -15,6 +15,7 @@ export default function CreateCourse() {
     difficulty_level: "",
     is_active: true,
     instructor_id: "",
+    instructor: "",
   });
   const [loading, setLoading] = useState(false);
   const [instructors, setInstructors] = useState<any[]>([]);
