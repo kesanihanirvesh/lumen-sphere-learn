@@ -420,10 +420,9 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 text-muted-foreground">
-              <button variant="outline" size="sm" onClick={() => navigate('/instructor')}>
-
+              <Button variant="outline" size="sm" onClick={() => navigate('/instructor-dashboard')}>
                 Go to Instructor Dashboard
-                </button>
+              </Button>
               </div>
             </CardContent>
           </Card>

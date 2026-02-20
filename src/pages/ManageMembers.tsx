@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from '@/integrations/supabase/client';
 import {
   Card,
-  CardHeader,
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
@@ -19,176 +17,125 @@ import { Input } from "@/components/ui/input";
 
 interface Student {
   id: string;
-  name: string;
-  roll_number: string;
-  course_name: string;
-  instructor: string;
-  duration: string;
-  total_tests: number;
-  due_tests: number;
+  student_name: string | null;
+  student_id: string | null;
+  email: string | null;
+  phone: string | null;
+  mentor_name: string | null;
+  course_id: string | null;
 }
 
 const ManageMembers: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
-  const [editId, setEditId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Student>>({});
-
-  // Fetch students from Supabase
-  const fetchStudents = async () => {
-    const { data, error } = await supabase.from("students").select("*");
-    if (error) console.error(error);
-    else setStudents(data || []);
-  };
 
   useEffect(() => {
     fetchStudents();
   }, []);
 
-  // Start editing
+  // Fetch students from Supabase
+  const fetchStudents = async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data, error } = await supabase.from("student").select("*");
+    if (error) console.error(error);
+    else setStudents((data || []) as Student[]);
+  };
+
   const handleEdit = (student: Student) => {
-    setEditId(student.id);
+    setEditingId(student.id);
     setEditData(student);
   };
 
-  // Handle field change
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    field: keyof Student
-  ) => {
-    setEditData({ ...editData, [field]: e.target.value });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof Student) => {
+    setEditData((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  // Save update
   const handleSave = async (id: string) => {
+    const { supabase } = await import("@/integrations/supabase/client");
     const { error } = await supabase
-      .from("students")
+      .from("student")
       .update(editData)
       .eq("id", id);
     if (error) console.error(error);
     else {
-      setEditId(null);
+      setEditingId(null);
       fetchStudents();
     }
   };
 
   // Delete student
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("students").delete().eq("id", id);
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { error } = await supabase.from("student").delete().eq("id", id);
     if (error) console.error(error);
     else fetchStudents();
   };
 
   return (
-    <Card className="m-6 shadow-lg">
-      <CardHeader>
-        <CardTitle>Manage Members</CardTitle>
-      </CardHeader>
+    <Card className="m-6">
       <CardContent>
+        <CardTitle className="mb-4 pt-4">Manage Members</CardTitle>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Student Name</TableHead>
-              <TableHead>Roll Number</TableHead>
-              <TableHead>Course Name</TableHead>
-              <TableHead>Instructor</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Total Tests</TableHead>
-              <TableHead>Due Tests</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Student ID</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Mentor</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {students.map((student) => (
               <TableRow key={student.id}>
-                {editId === student.id ? (
+                {editingId === student.id ? (
                   <>
                     <TableCell>
                       <Input
-                        value={editData.name || ""}
-                        onChange={(e) => handleChange(e, "name")}
+                        value={editData.student_name || ""}
+                        onChange={(e) => handleChange(e, "student_name")}
                       />
                     </TableCell>
                     <TableCell>
                       <Input
-                        value={editData.roll_number || ""}
-                        onChange={(e) => handleChange(e, "roll_number")}
+                        value={editData.student_id || ""}
+                        onChange={(e) => handleChange(e, "student_id")}
                       />
                     </TableCell>
                     <TableCell>
                       <Input
-                        value={editData.course_name || ""}
-                        onChange={(e) => handleChange(e, "course_name")}
+                        value={editData.email || ""}
+                        onChange={(e) => handleChange(e, "email")}
                       />
                     </TableCell>
                     <TableCell>
                       <Input
-                        value={editData.instructor || ""}
-                        onChange={(e) => handleChange(e, "instructor")}
+                        value={editData.phone || ""}
+                        onChange={(e) => handleChange(e, "phone")}
                       />
                     </TableCell>
                     <TableCell>
                       <Input
-                        value={editData.duration || ""}
-                        onChange={(e) => handleChange(e, "duration")}
+                        value={editData.mentor_name || ""}
+                        onChange={(e) => handleChange(e, "mentor_name")}
                       />
                     </TableCell>
                     <TableCell>
-                      <Input
-                        type="number"
-                        value={editData.total_tests ?? 0}
-                        onChange={(e) =>
-                          handleChange(e, "total_tests")
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={editData.due_tests ?? 0}
-                        onChange={(e) =>
-                          handleChange(e, "due_tests")
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button onClick={() => handleSave(student.id)} size="sm">
-                        Save
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setEditId(null)}
-                        className="ml-2"
-                      >
-                        Cancel
-                      </Button>
+                      <Button size="sm" onClick={() => handleSave(student.id)}>Save</Button>
                     </TableCell>
                   </>
                 ) : (
                   <>
-                    <TableCell>{student.name}</TableCell>
-                    <TableCell>{student.roll_number}</TableCell>
-                    <TableCell>{student.course_name}</TableCell>
-                    <TableCell>{student.instructor}</TableCell>
-                    <TableCell>{student.duration}</TableCell>
-                    <TableCell>{student.total_tests}</TableCell>
-                    <TableCell>{student.due_tests}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(student)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(student.id)}
-                        className="ml-2"
-                      >
-                        Delete
-                      </Button>
+                    <TableCell>{student.student_name}</TableCell>
+                    <TableCell>{student.student_id}</TableCell>
+                    <TableCell>{student.email}</TableCell>
+                    <TableCell>{student.phone}</TableCell>
+                    <TableCell>{student.mentor_name}</TableCell>
+                    <TableCell className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(student)}>Edit</Button>
+                      <Button size="sm" variant="destructive" onClick={() => handleDelete(student.id)}>Delete</Button>
                     </TableCell>
                   </>
                 )}

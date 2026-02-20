@@ -109,10 +109,10 @@ const QuizTaking = () => {
               value={answers[q.id]}
               onValueChange={(v) => handleSelect(q.id, v)}
             >
-              {Object.entries(q.options).map(([key, value]) => (
+              {Object.entries(q.options as Record<string, string>).map(([key, value]) => (
                 <div key={key} className="flex items-center space-x-3 mb-2">
                   <RadioGroupItem value={key} id={`${q.id}-${key}`} />
-                  <label htmlFor={`${q.id}-${key}`}>{value}</label>
+                  <label htmlFor={`${q.id}-${key}`}>{String(value)}</label>
                 </div>
               ))}
             </RadioGroup>
