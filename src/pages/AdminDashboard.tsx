@@ -66,6 +66,26 @@ export default function AdminDashboard() {
   const handleManageCourse = (courseId: string) => {
     navigate(`/courses/${courseId}/modules`);
   };
+  const deleteCourse = async (courseId: string) => {
+    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .delete()
+        .eq('id', courseId);
+
+      if (error) throw error;
+
+      toast.success('Course deleted successfully');
+      fetchAdminData(); // Refresh data after deletion
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      toast.error('Failed to delete course');
+    }
+  };
 
   // ... rest of the component
 
@@ -292,6 +312,13 @@ export default function AdminDashboard() {
             size="sm"
           >
             Manage Course
+          </Button>
+          <Button
+            onClick={() => deleteCourse(course.id)}
+            variant="outline"
+            size="sm"
+          >
+            Delete Course
           </Button>
         </div>
       </div>

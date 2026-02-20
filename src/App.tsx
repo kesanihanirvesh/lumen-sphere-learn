@@ -34,6 +34,7 @@ import ListView from "./components/dashboard/ListView";
 import AddTopic from "./pages/AddTopic";
 import Manage_module from "./pages/Manage_module";
 
+
 import PrivateRoute from "./PrivateRoute";
 import RoleRoute from "./RoleRoute";
 
@@ -56,13 +57,14 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/student-signup" element={<StudentSignup />} />
                 <Route path="/admin/instructor-signup" element={<InstructorSignup />} />
+                <Route path="/admin-dashboard/instructor-signup" element={<InstructorSignup />} />
 
                 {/* DASHBOARD - All logged-in roles */}
                 <Route
                   path="/dashboard"
                   element={
                     <PrivateRoute>
-                      <RoleRoute allowedRoles={["student"]}>
+                      <RoleRoute allowedRoles={["student","admin"]}>
                         <Dashboard />
                       </RoleRoute>
                     </PrivateRoute>
@@ -234,6 +236,16 @@ const App = () => (
                     <PrivateRoute>
                       <RoleRoute allowedRoles={["instructor", "admin"]}>
                         <AddStudent />
+                      </RoleRoute>
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/courses/:courseId/modules"
+                  element={
+                    <PrivateRoute>
+                      <RoleRoute allowedRoles={["instructor", "admin"]}>
+                        <CourseModules />
                       </RoleRoute>
                     </PrivateRoute>
                   }

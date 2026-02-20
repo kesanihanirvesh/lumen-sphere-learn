@@ -10,6 +10,7 @@ export default function ManageModule() {
   const [topics, setTopics] = useState([]);
 
   useEffect(() => {
+    console.log("Module ID from URL:", moduleId);
     const fetchModuleData = async () => {
       const { data: modData } = await supabase
         .from("course_modules")
@@ -33,13 +34,17 @@ export default function ManageModule() {
       <h1 className="text-3xl font-bold text-center mb-8">
         {module ? module.title : "Loading Module..."}
       </h1>
-
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {topics.map((topic) => (
           <Card
-            key={topic.id}
+            key={topic.id}  
             className="shadow-md hover:shadow-lg transition cursor-pointer"
-            onClick={() => navigate(`/topic/${topic.id}`)}
+            onClick={() => {
+  console.log("Clicked Topic ID:", topic.id);
+  navigate(`/topic/${topic.id}`);
+}}
+
           >
             <CardHeader>
               <CardTitle>{topic.title}</CardTitle>

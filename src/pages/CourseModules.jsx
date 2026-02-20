@@ -142,6 +142,7 @@ export default function CourseModules() {
     navigate(`/courses/${courseId}/modules/${moduleId}/topics/${topicId}/manage_module`);
 
   const handleAddStudent = () => navigate(`/courses/${courseId}/add-student`);
+  const handleCreateAssignment = () => navigate(`/courses/${courseId}/create-assignment`);
   const handleViewStudent = async() => {
     navigate("/students", { state: { courseId } });
   };
@@ -166,6 +167,12 @@ export default function CourseModules() {
       <div className="flex items-center justify-between border-b pb-4">
         <h2 className="text-2xl font-semibold text-gray-800">Course Modules</h2>
         <div className="flex gap-3">
+          <Button
+            onClick={() => handleCreateAssignment()}
+            className="bg-blue-600 hover:bg-green-700 text-white shadow-md"
+          >
+            Create Assignment
+          </Button>
           <Button
             onClick={() => handleAddStudent()}
             className="bg-green-600 hover:bg-green-700 text-white shadow-md"
